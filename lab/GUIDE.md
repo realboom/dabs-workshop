@@ -211,36 +211,83 @@ Every value that ties an asset to the dev environment becomes a **variable** (se
 
 | File | Hard-coded dev value | Change it to |
 |---|---|---|
+| `resources/variables.yml` (new) | — | one place that declares every variable |
 | `encounters_pipeline.pipeline.yml` | `catalog:` and `schema:` | `${var.catalog}` and `${var.schema}` |
-| `databricks.yml` | (no warehouse variable yet) | a `warehouse_id` **lookup** variable |
+| `silver_encounters.sql`, `gold_encounters.sql` | the dev source catalog and schema | `${source_catalog}` and `${source_schema}` |
 | `encounters_outcomes.dashboard.yml` | `warehouse_id:` | `${var.warehouse_id}`, plus `dataset_catalog` / `dataset_schema` |
 | `encounters_outcomes.lvdash.json` | the full table name in the query | the bare table name, `gold_encounters` |
 | `encounters_outcomes_genie.genie_space.yml` | `warehouse_id:`, `parent_path:`, and the table inside the JSON | `${var.warehouse_id}`, no `parent_path`, and a table built from variables |
 | `encounters_refresh.job.yml` | `pipeline_id:` and `pause_status: PAUSED` | a reference to your pipeline, and no `pause_status` |
 
-### 2.1 Pipeline: catalog and schema
+### 2.1 Declare your variables in one file
 
-In `resources/encounters_pipeline.pipeline.yml`, change the two lines:
-
-```yaml
-      catalog: ${var.catalog}
-      schema: ${var.schema}
-```
-
-Leave the SQL files alone. They read from the shared source data
-(`<catalog>.analyst101_shared`), which is the same in every environment.
-
-### 2.2 A lookup variable for the warehouse
-
-Warehouse IDs are long and differ between workspaces, so look the warehouse up by name. In
-`databricks.yml`, under the top-level `variables:` (next to `catalog:` and `schema:`), add:
+Create a new file, `resources/variables.yml`. Every `.yml` file in `resources/` is included in the
+bundle automatically.
 
 ```yaml
+# Variable declarations. Each target in databricks.yml sets their values.
+variables:
+  catalog:
+    description: Catalog the pipeline writes to
+  schema:
+    description: Schema the pipeline writes to
+  source_catalog:
+    description: Catalog that holds the source data the pipeline reads
+  source_schema:
+    description: Schema that holds the source data the pipeline reads
   warehouse_id:
     description: SQL warehouse for the dashboard and the Genie agent
     lookup:
       warehouse: Serverless Starter Warehouse
 ```
+
+`warehouse_id` is a **lookup** variable. Warehouse IDs are long and differ between workspaces, so
+the bundle finds the warehouse by name when you deploy.
+
+Then open `databricks.yml`:
+
+1. Delete the template's top-level `variables:` block (the `catalog:` and `schema:` declarations). They
+   now live in `variables.yml`, and a variable can only be declared once.
+2. Under `targets: → dev: → variables:`, add the dev source values below `catalog` and `schema`:
+
+   ```yaml
+       variables:
+         catalog: <your_catalog>
+         schema: <your_schema>
+         source_catalog: <your_catalog>
+         source_schema: analyst101_shared
+   ```
+
+### 2.2 Pipeline: where it writes and what it reads
+
+In `resources/encounters_pipeline.pipeline.yml`, change `catalog:` and `schema:`, and add a
+`configuration:` block at the end, lined up with `serverless:`:
+
+```yaml
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      ...
+      configuration:
+        source_catalog: ${var.source_catalog}
+        source_schema: ${var.source_schema}
+```
+
+`configuration` passes values into the pipeline's SQL. Now use them. Open
+`src/transformations/silver_encounters.sql` and `gold_encounters.sql`. Each refers to the source data
+with the dev catalog and schema written out, for example
+
+```sql
+FROM `<your_catalog>`.analyst101_shared.fact_encounters
+```
+
+Replace that prefix everywhere it appears (once in silver, three times in gold) with:
+
+```sql
+FROM `${source_catalog}`.`${source_schema}`.fact_encounters
+```
+
+This one matters most. With the dev catalog written into the SQL, a production deployment would
+quietly keep reading dev data.
 
 ### 2.3 Dashboard
 
@@ -303,8 +350,8 @@ In `resources/encounters_refresh.job.yml`:
 databricks bundle validate
 ```
 
-Fix anything it reports, then search your `resources/` files for the dev schema's name. It shouldn't
-appear anywhere.
+Fix anything it reports, then search your `resources/` and `src/` files for the dev catalog and schema
+names. Outside `databricks.yml`, they shouldn't appear anywhere.
 
 ---
 
@@ -323,12 +370,16 @@ appear anywhere.
     variables:
       catalog: <your_catalog>
       schema: prod
+      source_catalog: <your_catalog>
+      source_schema: analyst101_shared
     permissions:
       - user_name: <you>
         level: CAN_MANAGE
 ```
 
-Set `catalog` and `schema` under `prod:` to the production values your instructor gives you. In a
+Under `prod: → variables:`, set `catalog` and `schema` to the production values your instructor gives
+you, and add `source_catalog` and `source_schema` for the production source data. For the workshop,
+use the same source values as dev. In a
 real project, `host` would usually be the **production workspace**, and `root_path`, `permissions`,
 and a `run_as` service principal would be set for the CI/CD identity. You'll see those in Part 5.
 
@@ -342,7 +393,7 @@ create:
 
 ```bash
 databricks bundle validate -t dev  -o json | jq '.resources.pipelines.encounters_pipeline | {name, catalog, schema}'
-databricks bundle validate -t prod -o json | jq '.resources.pipelines.encounters_pipeline | {name, catalog, schema}'
+databricks bundle validate -t prod -o json | jq '.resources.pipelines.encounters_pipeline | {name, catalog, schema, configuration}'
 databricks bundle validate -t prod -o json | jq '.resources.genie_spaces[].serialized_space | fromjson | .data_sources.tables[].identifier'
 databricks bundle validate -t prod -o json | jq '.resources.jobs.encounters_refresh.trigger'
 ```
@@ -438,7 +489,8 @@ Your instructor will walk through it.
 |---|---|
 | Templates (`bundle init`) | Part 0 |
 | Importing existing assets (`bundle generate`) | Part 1 |
-| Variables, set per target | `catalog`, `schema` |
+| Variables declared in their own file, set per target | `resources/variables.yml` |
+| Variables passed into pipeline SQL | `${source_catalog}`, `${source_schema}` |
 | Lookup variables | `warehouse_id` → `Serverless Starter Warehouse` |
 | Resource references | `${resources.pipelines.encounters_pipeline.id}` |
 | Targets and deployment modes | `dev` (development) and `prod` (production) |

@@ -9,3 +9,6 @@ resources:
       root_path: ../src
       schema: ${var.schema}
       serverless: true
+      configuration:
+        source_catalog: ${var.source_catalog}
+        source_schema: ${var.source_schema}

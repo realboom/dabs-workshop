@@ -1,7 +1,7 @@
 # Declarative Automation Bundle for the DABs hands-on workshop (finished version).
 # Started from `databricks bundle init default-python` (no job, pipeline, or package). The four
 # assets were imported with `databricks bundle generate`, then their dev values were replaced
-# with variables and references.
+# with variables (declared in resources/variables.yml) and references.
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
 bundle:
   name: encounters_bundle
@@ -9,17 +9,6 @@ bundle:
 
 include:
   - resources/*.yml
-
-# Variable declarations. These variables are assigned in the dev/prod targets below.
-variables:
-  catalog:
-    description: The catalog to use
-  schema:
-    description: The schema to use
-  warehouse_id:
-    description: SQL warehouse for the dashboard and the Genie agent
-    lookup:
-      warehouse: Serverless Starter Warehouse
 
 targets:
   dev:
@@ -34,6 +23,8 @@ targets:
     variables:
       catalog: <your_catalog>
       schema: <your_schema>
+      source_catalog: <your_catalog>
+      source_schema: analyst101_shared
   prod:
     mode: production
     workspace:
@@ -43,6 +34,8 @@ targets:
     variables:
       catalog: <your_catalog>
       schema: prod
+      source_catalog: <your_catalog>
+      source_schema: analyst101_shared
     permissions:
       - user_name: <you>
         level: CAN_MANAGE

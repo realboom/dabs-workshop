@@ -8,8 +8,9 @@ The story: a pipeline, an AI/BI dashboard, a Genie agent, and a job were built i
 workspace through the UI. Each student takes them into a bundle so CI/CD can promote them:
 
 1. **Import** the four assets with `databricks bundle generate`
-2. **Remove the dev hard-coding**: variables for catalog and schema, a warehouse lookup, the job's
-   pipeline reference, and the Genie agent's table
+2. **Remove the dev hard-coding**: variables (declared in `resources/variables.yml`) for where the
+   pipeline writes and what it reads, including inside the SQL; a warehouse lookup; the job's pipeline
+   reference; and the Genie agent's table
 3. **Define production** and compare `validate -t dev` with `validate -t prod`, without deploying to prod
 4. **Deploy their own dev copy**, run it, and check it
 5. **See how CI/CD promotes it** (`cicd/deploy-prod.yml`)

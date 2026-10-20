@@ -8,6 +8,6 @@ AS SELECT
   e.complication_flag * 100.0 AS complication_pct,
   p.provider_name, p.specialty, f.facility_name, f.region, f.facility_type, d.clinical_category
 FROM silver_encounters e
-JOIN `<your_catalog>`.analyst101_shared.dim_provider p USING (provider_id)
-JOIN `<your_catalog>`.analyst101_shared.dim_facility f USING (facility_id)
-JOIN `<your_catalog>`.analyst101_shared.dim_diagnosis d ON e.primary_icd10_code = d.icd10_code;
+JOIN `${source_catalog}`.`${source_schema}`.dim_provider p USING (provider_id)
+JOIN `${source_catalog}`.`${source_schema}`.dim_facility f USING (facility_id)
+JOIN `${source_catalog}`.`${source_schema}`.dim_diagnosis d ON e.primary_icd10_code = d.icd10_code;

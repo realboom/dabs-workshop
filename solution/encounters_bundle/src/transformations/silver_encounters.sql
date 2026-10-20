@@ -5,4 +5,4 @@ CREATE MATERIALIZED VIEW silver_encounters (
   CONSTRAINT non_negative_charges EXPECT (total_charges >= 0)
 )
 COMMENT "Encounters with basic data quality checks."
-AS SELECT * FROM `<your_catalog>`.analyst101_shared.fact_encounters;
+AS SELECT * FROM `${source_catalog}`.`${source_schema}`.fact_encounters;
