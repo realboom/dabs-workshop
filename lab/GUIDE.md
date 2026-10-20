@@ -27,16 +27,19 @@ your laptop.
 
 You need:
 
-- **Your dev catalog and schema.** Your instructor will give you these: the workshop catalog, and a
+- **Your dev catalog and schema.** Your instructor will give you these: the workshop catalog and a
   schema named after you, such as `jane_doe`.
+- **The shared data.** `<your_catalog>.analyst101_shared` holds the encounters tables
+  (`fact_encounters`, `dim_provider`, `dim_facility`, `dim_diagnosis`, …). You read from it; you never
+  write to it.
 - **Links to the four dev assets.** Your instructor will share a link to each one: the pipeline, the
   dashboard, the Genie agent, and the job.
 - **This repo in your workspace.** In the workspace sidebar, open your home folder, select
-  **Create → Git folder**, and paste `https://github.com/realboom/dabs-workshop`. It appears as
+  **Workspace → Create → Git folder**, and paste `https://github.com/realboom/dabs-workshop`. It appears as
   `dabs-workshop` in your home folder. You'll use one helper script from it, and it holds the finished
   bundle if you want to compare.
 
-Throughout the lab you'll use two browser tabs:
+Throughout the lab, you'll use two browser tabs:
 
 - **Tab 1 — Terminal.** For `databricks` commands.
 - **Tab 2 — Workspace file browser.** For opening and editing files in your bundle.
@@ -109,8 +112,6 @@ In **Tab 2**, open `encounters_bundle/databricks.yml` and make these changes.
          catalog: <your_catalog>      # the catalog you typed
          schema: <your_schema>        # was: dev
    ```
-
-3. Save the file.
 
 Back in **Tab 1**, check your work:
 
