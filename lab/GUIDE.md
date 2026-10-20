@@ -188,6 +188,8 @@ databricks bundle run encounters_pipeline
 ### 1.4 Check the results
 
 In the workspace sidebar, open **Jobs & Pipelines** and find **`[dev <your_name>] encounters_pipeline`**.
+If it isn't listed, check the filter at the top of the list: it may be set to **Jobs**. Switch it to
+**All**, or search for `encounters`.
 Look at the pipeline graph: `silver_encounters` → `gold_encounters`. Then open **Catalog**, browse to
 your schema, and confirm both tables are there. `gold_encounters` has about 80,000 rows.
 
