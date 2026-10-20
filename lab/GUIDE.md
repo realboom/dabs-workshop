@@ -177,6 +177,14 @@ databricks bundle run encounters_pipeline
 `deploy` creates the pipeline. `run` starts it and streams its progress. Wait for
 `Update … is COMPLETED` (about a minute on serverless).
 
+> **Source-linked deployment.** `deploy` prints `Source-linked deployment is enabled` and
+> `Files: 0 uploaded`. Because you're deploying from inside the workspace in development mode, the
+> bundle doesn't copy your files anywhere; the pipeline runs the SQL in your `encounters_bundle/src`
+> folder directly. So an edit to a `.sql` file is picked up the next time the pipeline runs, while
+> changes to YAML files still need `databricks bundle deploy`. Don't move or delete the
+> `encounters_bundle` folder while the pipeline is deployed. Deployments from a laptop, from CI/CD,
+> or to a production target upload their own copy of the files instead.
+
 ### 1.4 Check the results
 
 In the workspace sidebar, open **Jobs & Pipelines** and find **`[dev <your_name>] encounters_pipeline`**.
