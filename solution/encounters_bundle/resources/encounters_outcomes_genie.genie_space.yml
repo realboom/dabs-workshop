@@ -1,12 +1,9 @@
-# Genie agent on gold_encounters. serialized_space is the agent's full definition
-# (table, instructions, example SQL, sample questions) in the Genie export format.
-# The table name is built from your catalog and schema variables.
 resources:
   genie_spaces:
     encounters_outcomes_genie:
       title: "Encounters & Outcomes Genie"
-      description: Ask questions about encounters, readmissions, and charges.
       warehouse_id: ${var.warehouse_id}
+      description: Ask questions about encounters, readmissions, and charges.
       serialized_space: |
         {
           "config": {

@@ -1,13 +1,22 @@
-# Job that refreshes the pipeline every day. In dev mode the schedule is paused.
 resources:
   jobs:
     encounters_refresh:
       name: encounters_refresh
+      tasks:
+        - task_key: refresh_pipeline
+          disabled: false
+          email_notifications: {}
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.encounters_pipeline.id}
+          run_if: ALL_SUCCESS
+          timeout_seconds: 0
+      email_notifications: {}
+      max_concurrent_runs: 1
+      queue:
+        enabled: true
+      timeout_seconds: 0
       trigger:
         periodic:
           interval: 1
           unit: DAYS
-      tasks:
-        - task_key: refresh_pipeline
-          pipeline_task:
-            pipeline_id: ${resources.pipelines.encounters_pipeline.id}
+      webhook_notifications: {}

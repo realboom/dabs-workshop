@@ -1,29 +1,40 @@
-# DABs Hands-On Lab — Deploy a Pipeline, Dashboard, and Genie Agent with Declarative Automation Bundles
+# DABs Hands-On Lab — Productionize What You Built in Dev with Declarative Automation Bundles
 
 **Time:** about 1 hour  ·  **Compute:** serverless only  ·  **Data:** synthetic hospital encounters (no PHI)
 
-In this lab you build a Declarative Automation Bundle (DAB) one piece at a time. By the end, a single
-folder of files deploys four things to your workspace:
+A data team has built four assets in the **dev** workspace using the UI:
 
-1. A **Lakeflow pipeline** that builds `silver_encounters` and `gold_encounters` in your schema
+1. A **Lakeflow pipeline** that builds `silver_encounters` and `gold_encounters`
 2. An **AI/BI dashboard** on `gold_encounters`
 3. A **Genie agent** that answers questions about `gold_encounters`
 4. A **job** that refreshes the pipeline every day
 
-Everything runs from a **web terminal** inside the workspace. You don't need anything installed on your laptop.
+They work, but they only exist in dev, and nothing describes them in source control. In this lab
+you take those assets and put them into a **Declarative Automation Bundle (DAB)**, the form a CI/CD
+pipeline can promote to production:
+
+- **Import** each asset into a bundle with `databricks bundle generate`
+- **Remove the dev hard-coding** so the same files work in any environment
+- **Define production** and check exactly what a production deployment would create
+- **Deploy your own dev copy** to prove the bundle works
+
+You won't deploy to production yourself. That's the job of CI/CD, which the last part walks through.
+
+Everything runs from a **web terminal** inside the workspace. You don't need anything installed on
+your laptop.
 
 ## Before you start
 
 You need:
 
-- **Your catalog and schema.** Your instructor will give you these: the workshop catalog, and a
+- **Your dev catalog and schema.** Your instructor will give you these: the workshop catalog, and a
   schema named after you, such as `jane_doe`.
-- **The shared data.** `<your_catalog>.analyst101_shared` holds the encounters tables
-  (`fact_encounters`, `dim_provider`, `dim_facility`, `dim_diagnosis`, …). You read from it; you never
-  write to it.
+- **Links to the four dev assets.** Your instructor will share a link to each one: the pipeline, the
+  dashboard, the Genie agent, and the job.
 - **This repo in your workspace.** In the workspace sidebar, open your home folder, select
   **Create → Git folder**, and paste `https://github.com/realboom/dabs-workshop`. It appears as
-  `dabs-workshop` in your home folder.
+  `dabs-workshop` in your home folder. You'll use one helper script from it, and it holds the finished
+  bundle if you want to compare.
 
 Throughout the lab you'll use two browser tabs:
 
@@ -117,27 +128,52 @@ it can reach your workspace. It doesn't deploy anything.
 
 ---
 
-## Part 1 — Add the pipeline (15 min)
+## Part 1 — Import what was built in dev (15 min)
 
-### 1.1 Copy in the pipeline files
+`databricks bundle generate` reads an asset that already exists in the workspace and writes its
+definition into your bundle as YAML, plus any files it uses (SQL, dashboard layout, Genie
+definition). Nothing in the workspace changes.
 
-Your instructor built the pipeline once in the workspace UI and exported it with
-`databricks bundle generate pipeline`. You'll add that exported definition to your bundle:
+### 1.1 Get the four asset IDs
+
+Open each link your instructor shared. The asset's ID is in the address bar:
+
+| Asset | The address looks like | The ID is |
+|---|---|---|
+| Pipeline | `…/pipelines/09665761-efcc-4a8b-…` | the value after `/pipelines/` |
+| Dashboard | `…/dashboardsv3/01f1cc35b86c15e2…/published` | the value after `/dashboardsv3/` |
+| Genie agent | `…/genie/rooms/01f1cc35b00e1cb8…` | the value after `/rooms/` |
+| Job | `…/jobs/551104569476387` | the number after `/jobs/` |
+
+Ignore anything after `?` in the address.
+
+### 1.2 Generate the bundle definitions
+
+In **Tab 1**, from your `encounters_bundle` folder, run one command per asset with its ID:
 
 ```bash
-cp -r ../dabs-workshop/lab/1_pipeline/. .
+databricks bundle generate pipeline --existing-pipeline-id <pipeline_id>
+databricks bundle generate dashboard --existing-id <dashboard_id>
+databricks bundle generate genie-space --existing-id <genie_agent_id>
+databricks bundle generate job --existing-job-id <job_id>
 ```
 
-That adds four files:
+Your bundle now has:
 
 | File | What it is |
 |---|---|
 | `resources/encounters_pipeline.pipeline.yml` | The pipeline definition |
-| `resources/variables.yml` | Two new variables: where the shared data lives |
-| `src/transformations/silver_encounters.sql` | Silver table, with data quality expectations |
-| `src/transformations/gold_encounters.sql` | Gold table, joined to provider, facility, and diagnosis |
+| `src/transformations/silver_encounters.sql`, `gold_encounters.sql` | The pipeline's SQL, downloaded from the original |
+| `resources/encounters_outcomes.dashboard.yml` | The dashboard definition |
+| `src/encounters_outcomes.lvdash.json` | The dashboard's layout and queries |
+| `resources/encounters_outcomes_genie.genie_space.yml` | The Genie agent definition |
+| `src/encounters_outcomes_genie.geniespace.json` | The agent's tables, instructions, and example questions |
+| `resources/encounters_refresh.job.yml` | The job definition |
 
-### 1.2 Read the pipeline definition
+The name in front of each `.yml` (for example `encounters_pipeline`) is the **resource key**.
+Commands such as `bundle run` use it.
+
+### 1.3 Look at what you got
 
 Open `resources/encounters_pipeline.pipeline.yml` in **Tab 2**:
 
@@ -146,62 +182,58 @@ resources:
   pipelines:
     encounters_pipeline:
       name: encounters_pipeline
-      catalog: ${var.catalog}
-      schema: ${var.schema}
-      serverless: true
-      root_path: ../src
       libraries:
         - glob:
             include: ../src/transformations/**
-      configuration:
-        source_catalog: ${var.source_catalog}
-        source_schema: ${var.source_schema}
+      catalog: dev-training
+      root_path: ../src
+      schema: instructor_demo
+      serverless: true
 ```
 
-- `encounters_pipeline` (under `pipelines:`) is the **resource key**. Commands like `bundle run` use it.
-- `${var.catalog}` and `${var.schema}` are **variables**. The pipeline writes its tables to the catalog
-  and schema you set in Part 0.
-- `configuration` passes values into the SQL. Open `src/transformations/silver_encounters.sql` and
-  find `${source_catalog}` and `${source_schema}`. Neither file contains a hard-coded catalog name.
-- Open `resources/variables.yml`. `source_catalog` defaults to `${var.catalog}`: one variable built from
-  another.
+This is a faithful copy of the dev pipeline, **including where it writes**: `catalog` and `schema`
+are hard-coded to the schema it was built in. Deploy it as-is and your copy would write into that
+same schema, and so would production. Part 2 fixes that.
 
-### 1.3 Deploy and run
-
-```bash
-databricks bundle validate
-databricks bundle deploy
-databricks bundle run encounters_pipeline
-```
-
-`deploy` creates the pipeline. `run` starts it and streams its progress. Wait for
-`Update … is COMPLETED` (about a minute on serverless).
-
-> **Source-linked deployment.** `deploy` prints `Source-linked deployment is enabled` and
-> `Files: 0 uploaded`. Because you're deploying from inside the workspace in development mode, the
-> bundle doesn't copy your files anywhere; the pipeline runs the SQL in your `encounters_bundle/src`
-> folder directly. So an edit to a `.sql` file is picked up the next time the pipeline runs, while
-> changes to YAML files still need `databricks bundle deploy`. Don't move or delete the
-> `encounters_bundle` folder while the pipeline is deployed. Deployments from a laptop, from CI/CD,
-> or to a production target upload their own copy of the files instead.
-
-### 1.4 Check the results
-
-In the workspace sidebar, open **Jobs & Pipelines** and find **`[dev <your_name>] encounters_pipeline`**.
-If it isn't listed, check the filter at the top of the list: it may be set to **Jobs**. Switch it to
-**All**, or search for `encounters`.
-Look at the pipeline graph: `silver_encounters` → `gold_encounters`. Then open **Catalog**, browse to
-your schema, and confirm both tables are there. `gold_encounters` has about 80,000 rows.
+> **`generate` copies; `bind` adopts.** Deploying a generated definition creates a **new** asset
+> owned by your bundle; the original is left alone. That's what you want here. If you were bringing
+> **your own** asset under a bundle, you'd follow `generate` with
+> `databricks bundle deployment bind <resource_key> <id>`, so the bundle takes over the original
+> instead of creating a second one. Don't bind to a shared asset: every student's bundle would then
+> try to control the same one.
 
 ---
 
-## Part 2 — Add the dashboard (10 min)
+## Part 2 — Remove the dev hard-coding (15 min)
 
-### 2.1 Add a lookup variable for the warehouse
+Every value that ties an asset to the dev environment becomes a **variable** (set per target) or a
+**reference** (resolved by the bundle). Here's the whole list; the steps below walk through each one.
 
-A dashboard needs a SQL warehouse. Warehouse IDs are long and differ between workspaces, so instead of
-typing one, you'll **look it up by name**. Add this to the end of `resources/variables.yml`, indented to
-line up with `source_schema:`:
+| File | Hard-coded dev value | Change it to |
+|---|---|---|
+| `encounters_pipeline.pipeline.yml` | `catalog:` and `schema:` | `${var.catalog}` and `${var.schema}` |
+| `databricks.yml` | (no warehouse variable yet) | a `warehouse_id` **lookup** variable |
+| `encounters_outcomes.dashboard.yml` | `warehouse_id:` | `${var.warehouse_id}`, plus `dataset_catalog` / `dataset_schema` |
+| `encounters_outcomes.lvdash.json` | the full table name in the query | the bare table name, `gold_encounters` |
+| `encounters_outcomes_genie.genie_space.yml` | `warehouse_id:`, `parent_path:`, and the table inside the JSON | `${var.warehouse_id}`, no `parent_path`, and a table built from variables |
+| `encounters_refresh.job.yml` | `pipeline_id:` and `pause_status: PAUSED` | a reference to your pipeline, and no `pause_status` |
+
+### 2.1 Pipeline: catalog and schema
+
+In `resources/encounters_pipeline.pipeline.yml`, change the two lines:
+
+```yaml
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+```
+
+Leave the SQL files alone. They read from the shared source data
+(`<catalog>.analyst101_shared`), which is the same in every environment.
+
+### 2.2 A lookup variable for the warehouse
+
+Warehouse IDs are long and differ between workspaces, so look the warehouse up by name. In
+`databricks.yml`, under the top-level `variables:` (next to `catalog:` and `schema:`), add:
 
 ```yaml
   warehouse_id:
@@ -210,147 +242,210 @@ line up with `source_schema:`:
       warehouse: Serverless Starter Warehouse
 ```
 
-When you deploy, the bundle finds the warehouse with that name and uses its ID.
+### 2.3 Dashboard
 
-### 2.2 Copy in the dashboard files
-
-```bash
-cp -r ../dabs-workshop/lab/2_dashboard/. .
-```
-
-Open `resources/encounters_outcomes.dashboard.yml`:
+In `resources/encounters_outcomes.dashboard.yml`, replace the `warehouse_id:` line with these three:
 
 ```yaml
-resources:
-  dashboards:
-    encounters_outcomes:
-      display_name: "Encounters & Outcomes"
-      file_path: ../src/encounters_outcomes.lvdash.json
       warehouse_id: ${var.warehouse_id}
       dataset_catalog: ${var.catalog}
       dataset_schema: ${var.schema}
 ```
 
-The dashboard itself is `src/encounters_outcomes.lvdash.json`, the file the dashboard editor saves.
-Its query is just `SELECT * FROM gold_encounters`, with no catalog or schema. `dataset_catalog` and
-`dataset_schema` fill those in, so your copy of the dashboard reads **your** `gold_encounters`.
+Then open `src/encounters_outcomes.lvdash.json`, find the query near the top (it ends with
+`.gold_encounters"`), and change it to the bare table name:
 
-### 2.3 Deploy
-
-```bash
-databricks bundle deploy
+```json
+        "SELECT * FROM gold_encounters"
 ```
 
-The output ends with `Resources: 1 created, 0 changed, 0 deleted, 1 unchanged`. The bundle compares
-what's in your files with what's already deployed, so the pipeline from Part 1 is unchanged.
+`dataset_catalog` and `dataset_schema` fill in the catalog and schema for any table name in the
+dashboard that doesn't have them.
 
-Open **Dashboards** and find **`[dev <your_name>] Encounters & Outcomes`**. Try the filters.
+### 2.4 Genie agent
+
+In `resources/encounters_outcomes_genie.genie_space.yml`:
+
+1. Change `warehouse_id:` to `${var.warehouse_id}`.
+2. Delete the `parent_path:` line. It points at the folder of whoever built the agent; without it,
+   the bundle uses its own folder.
+
+The agent's table is inside `src/encounters_outcomes_genie.geniespace.json`, and bundle variables
+aren't substituted inside that file. So move the definition into the YAML, where they are. In
+**Tab 1** run:
+
+```bash
+python ../dabs-workshop/tools/inline_genie.py
+```
+
+It copies the JSON into the YAML as `serialized_space`, replaces the table with
+`${var.catalog}.${var.schema}.gold_encounters`, and removes the JSON file. Open the YAML again to see
+the result.
+
+### 2.5 Job
+
+In `resources/encounters_refresh.job.yml`:
+
+1. Change `pipeline_id: <the dev pipeline's ID>` to
+
+   ```yaml
+               pipeline_id: ${resources.pipelines.encounters_pipeline.id}
+   ```
+
+   That's a **resource reference**: the job refreshes whichever pipeline this bundle deployed to the
+   same target. In dev that's your pipeline; in production, the production pipeline.
+2. Delete the line `pause_status: PAUSED`. The dev job was paused, and `generate` copied that over.
+   Left in, the production job would never run. Development mode pauses schedules in dev for you.
+
+### 2.6 Validate
+
+```bash
+databricks bundle validate
+```
+
+Fix anything it reports, then search your `resources/` files for the dev schema's name. It shouldn't
+appear anywhere.
 
 ---
 
-## Part 3 — Add the Genie agent (10 min)
+## Part 3 — Define production (10 min)
 
-### 3.1 Copy in the Genie agent
+### 3.1 Set the production values
 
-```bash
-cp -r ../dabs-workshop/lab/3_genie/. .
-```
-
-Open `resources/encounters_outcomes_genie.genie_space.yml`. Under `serialized_space` is the agent's
-full definition, exactly as the Genie API exports it:
-
-- `data_sources.tables` — the table the agent uses:
-  `${var.catalog}.${var.schema}.gold_encounters`, which is your table
-- `instructions.text_instructions` — how to calculate rates and format results
-- `instructions.example_question_sqls` — a question paired with the SQL that answers it
-- `config.sample_questions` — the questions shown when you open the agent
-
-### 3.2 Deploy
-
-```bash
-databricks bundle deploy
-```
-
-> If you see `Table '…gold_encounters' does not exist`, the pipeline hasn't run yet. A Genie agent can
-> only be created on a table that exists. Run `databricks bundle run encounters_pipeline`, then deploy
-> again.
-
-Open **Genie** and find **`[dev <your_name>] Encounters & Outcomes Genie`**. Ask:
-
-- *Which facilities have the highest 30-day readmission rate?*
-- *Which specialties have the most complications?*
-
-Open **Show code** on an answer and compare it with the instructions in your YAML. For example, it
-should only rank facilities with at least 200 encounters.
-
----
-
-## Part 4 — Add a job (10 min)
-
-### 4.1 Copy in the job
-
-```bash
-cp -r ../dabs-workshop/lab/4_job/. .
-```
-
-Open `resources/encounters_refresh.job.yml`:
+`bundle init` already created a `prod` target in `databricks.yml`:
 
 ```yaml
-resources:
-  jobs:
-    encounters_refresh:
-      name: encounters_refresh
-      trigger:
-        periodic:
-          interval: 1
-          unit: DAYS
-      tasks:
-        - task_key: refresh_pipeline
-          pipeline_task:
-            pipeline_id: ${resources.pipelines.encounters_pipeline.id}
+  prod:
+    mode: production
+    workspace:
+      host: https://<your-workspace-url>
+      root_path: /Workspace/Users/<you>/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: <your_catalog>
+      schema: prod
+    permissions:
+      - user_name: <you>
+        level: CAN_MANAGE
 ```
 
-`${resources.pipelines.encounters_pipeline.id}` is a **resource reference**. The job doesn't hard-code
-the pipeline's ID; the bundle fills in the ID of the pipeline it deployed for you. The job only has a
-pipeline task, so it runs on serverless with no cluster to configure.
+Set `catalog` and `schema` under `prod:` to the production values your instructor gives you. In a
+real project, `host` would usually be the **production workspace**, and `root_path`, `permissions`,
+and a `run_as` service principal would be set for the CI/CD identity. You'll see those in Part 5.
 
-### 4.2 Deploy and run
+`mode: production` tells the bundle this is a real deployment: no `[dev …]` name prefix, schedules
+run, and it checks that the deployment is going somewhere deliberate.
+
+### 3.2 Compare dev and production without deploying
+
+`validate -t <target>` shows the fully resolved bundle for any target. Compare what each one would
+create:
+
+```bash
+databricks bundle validate -t dev  -o json | jq '.resources.pipelines.encounters_pipeline | {name, catalog, schema}'
+databricks bundle validate -t prod -o json | jq '.resources.pipelines.encounters_pipeline | {name, catalog, schema}'
+databricks bundle validate -t prod -o json | jq '.resources.genie_spaces[].serialized_space | fromjson | .data_sources.tables[].identifier'
+databricks bundle validate -t prod -o json | jq '.resources.jobs.encounters_refresh.trigger'
+```
+
+| | dev | prod |
+|---|---|---|
+| Pipeline name | `[dev <your_name>] encounters_pipeline` | `encounters_pipeline` |
+| Writes to | your schema | the production schema |
+| Genie agent reads | your `gold_encounters` | production `gold_encounters` |
+| Job schedule | paused | runs daily |
+
+Same files, different environment. That's the point of the bundle.
+
+---
+
+## Part 4 — Deploy your dev copy (10 min)
+
+### 4.1 First deploy
 
 ```bash
 databricks bundle deploy
+```
+
+The pipeline, dashboard, and job deploy. The Genie agent fails with
+`Table '…gold_encounters' does not exist`. That's expected: a Genie agent can only be created on a
+table that exists, and your pipeline hasn't run yet.
+
+> **Source-linked deployment.** `deploy` also prints `Source-linked deployment is enabled` and
+> `Files: 0 uploaded`. Because you're deploying from inside the workspace in development mode, the
+> bundle doesn't copy your files anywhere; the pipeline runs the SQL in your `encounters_bundle/src`
+> folder directly. So an edit to a `.sql` file is picked up the next time the pipeline runs, while
+> changes to YAML files still need `databricks bundle deploy`. Don't move or delete the
+> `encounters_bundle` folder while the pipeline is deployed. Deployments from a laptop, from CI/CD,
+> or to a production target upload their own copy of the files instead.
+
+### 4.2 Run the job
+
+```bash
 databricks bundle run encounters_refresh
 ```
 
-Wait for `TERMINATED SUCCESS`. Open **Jobs & Pipelines** and find
-**`[dev <your_name>] encounters_refresh`**. The daily schedule shows as **paused**, because
-development mode pauses schedules.
+The job runs your pipeline. Wait for `TERMINATED SUCCESS` (a minute or two on serverless).
 
-### 4.3 See everything the bundle owns
+### 4.3 Deploy again
+
+```bash
+databricks bundle deploy
+```
+
+This time the Genie agent is created, because `gold_encounters` now exists in your schema.
+
+### 4.4 Check your copy
 
 ```bash
 databricks bundle summary
 ```
 
-This lists your four resources with their links. That one folder now describes and deploys the
-whole project.
+This lists everything the bundle deployed, with links. Open each one:
+
+- **Pipeline** — `silver_encounters` → `gold_encounters`, in your schema. In **Jobs & Pipelines**, if
+  it isn't listed, check the filter at the top of the list: it may be set to **Jobs**. Switch it to
+  **All**, or search for `encounters`.
+- **Dashboard** — `[dev <your_name>] Encounters & Outcomes`, showing your data
+- **Genie agent** — ask *Which facilities have the highest 30-day readmission rate?*
+- **Job** — `[dev <your_name>] encounters_refresh`, with its schedule paused
+
+The first deploy failing on the Genie agent is a real-world lesson too: when CI/CD deploys to a
+brand-new environment for the first time, the pipeline has to run before the Genie agent can be
+created.
+
+---
+
+## Part 5 — How it gets to production (5 min)
+
+You've built a bundle that deploys correctly to dev and resolves correctly for production. Promoting
+it is a CI/CD job, not something a developer runs from a terminal:
+
+1. The bundle goes into a Git repository.
+2. On every pull request, CI runs `databricks bundle validate -t prod`, so a broken bundle never
+   merges.
+3. When the change merges to `main`, CI runs `databricks bundle deploy -t prod` as a **service
+   principal**, not as a person. The production target sets `run_as` to that service principal, so
+   the pipeline and job run under it too.
+
+`dabs-workshop/cicd/deploy-prod.yml` is an example GitHub Actions workflow that does steps 2 and 3.
+Your instructor will walk through it.
 
 ---
 
 ## Wrap-up
 
-You used the main bundle features:
-
-| Feature | Where you used it |
+| Bundle feature | Where you used it |
 |---|---|
-| Template (`bundle init`) | Part 0 |
-| Targets and development mode | `targets: dev: mode: development` |
-| Custom variables and per-target values | `catalog`, `schema` in `databricks.yml` |
-| Variables built from other variables | `source_catalog: ${var.catalog}` |
+| Templates (`bundle init`) | Part 0 |
+| Importing existing assets (`bundle generate`) | Part 1 |
+| Variables, set per target | `catalog`, `schema` |
 | Lookup variables | `warehouse_id` → `Serverless Starter Warehouse` |
 | Resource references | `${resources.pipelines.encounters_pipeline.id}` |
-| `validate` → `deploy` → `run` | Every part |
+| Targets and deployment modes | `dev` (development) and `prod` (production) |
+| `validate` → `deploy` → `run` | Parts 2–4 |
 
 The finished bundle is in `dabs-workshop/solution/encounters_bundle` if you want to compare.
 
-**Cleaning up (optional).** `databricks bundle destroy` deletes everything the bundle deployed,
-**including the pipeline's tables** in your schema. Only run it if you're done with them.
+**Cleaning up (optional).** `databricks bundle destroy` deletes everything the bundle deployed to dev.
+It can leave the pipeline's tables behind in your schema; if you deploy into the same schema again
+later, drop `silver_encounters` and `gold_encounters` first.

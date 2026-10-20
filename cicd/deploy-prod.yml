@@ -1,0 +1,53 @@
+# Example GitHub Actions workflow: promote the bundle to production.
+#
+# Copy this file to .github/workflows/ in the repository that holds your bundle.
+# - Pull requests: validate the bundle against the prod target, so a broken bundle never merges.
+# - Merges to main: deploy the bundle to prod as a service principal.
+#
+# Set these in the repository's "production" environment (Settings → Environments):
+#   variable DATABRICKS_HOST           the production workspace URL
+#   secret   DATABRICKS_CLIENT_ID      the service principal's application (client) ID
+#   secret   DATABRICKS_CLIENT_SECRET  an OAuth secret for that service principal
+# The prod target in databricks.yml should set run_as to the same service principal.
+name: Deploy bundle to production
+
+on:
+  pull_request:
+    branches: [main]
+    paths: ["encounters_bundle/**"]
+  push:
+    branches: [main]
+    paths: ["encounters_bundle/**"]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: encounters_bundle
+    env:
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle validate -t prod
+
+  deploy:
+    if: github.event_name == 'push'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: encounters_bundle
+    env:
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle deploy -t prod --auto-approve

@@ -1,10 +1,11 @@
 # Declarative Automation Bundle for the DABs hands-on workshop (finished version).
-# Started from `databricks bundle init default-python` (no job, no pipeline, no package),
-# then the lab/ step folders were copied in one at a time.
+# Started from `databricks bundle init default-python` (no job, pipeline, or package). The four
+# assets were imported with `databricks bundle generate`, then their dev values were replaced
+# with variables and references.
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
 bundle:
   name: encounters_bundle
-  uuid: 4d6b20b6-81e7-4385-b282-e448187af41f
+  uuid: c95ab8d6-cde5-4e2f-808a-14eb5984ffe4
 
 include:
   - resources/*.yml
@@ -15,6 +16,10 @@ variables:
     description: The catalog to use
   schema:
     description: The schema to use
+  warehouse_id:
+    description: SQL warehouse for the dashboard and the Genie agent
+    lookup:
+      warehouse: Serverless Starter Warehouse
 
 targets:
   dev:
@@ -29,3 +34,15 @@ targets:
     variables:
       catalog: <your_catalog>
       schema: <your_schema>
+  prod:
+    mode: production
+    workspace:
+      host: https://<your-workspace-url>
+      # We explicitly deploy to /Workspace/Users/<you> to make sure we only have a single copy.
+      root_path: /Workspace/Users/<you>/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: <your_catalog>
+      schema: prod
+    permissions:
+      - user_name: <you>
+        level: CAN_MANAGE

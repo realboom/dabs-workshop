@@ -1,5 +1,4 @@
 -- Gold: one row per encounter with provider, facility, and diagnosis details.
--- The dashboard and the Genie agent both read this table.
 CREATE MATERIALIZED VIEW gold_encounters
 COMMENT "Encounters with provider, facility, and diagnosis details, ready for reporting."
 AS SELECT
@@ -9,6 +8,6 @@ AS SELECT
   e.complication_flag * 100.0 AS complication_pct,
   p.provider_name, p.specialty, f.facility_name, f.region, f.facility_type, d.clinical_category
 FROM silver_encounters e
-JOIN `${source_catalog}`.`${source_schema}`.dim_provider p USING (provider_id)
-JOIN `${source_catalog}`.`${source_schema}`.dim_facility f USING (facility_id)
-JOIN `${source_catalog}`.`${source_schema}`.dim_diagnosis d ON e.primary_icd10_code = d.icd10_code;
+JOIN `<your_catalog>`.analyst101_shared.dim_provider p USING (provider_id)
+JOIN `<your_catalog>`.analyst101_shared.dim_facility f USING (facility_id)
+JOIN `<your_catalog>`.analyst101_shared.dim_diagnosis d ON e.primary_icd10_code = d.icd10_code;
