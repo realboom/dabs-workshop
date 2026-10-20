@@ -68,14 +68,14 @@ print(f"Generating {NUM_ENCOUNTERS:,} encounters into {CATALOG}.{SCHEMA}")
 # case stop with a clear, actionable message rather than continuing into confusing errors.
 if spark.sql(f"SHOW CATALOGS LIKE '{CATALOG}'").count() == 0:
     try:
-        spark.sql(f"CREATE CATALOG IF NOT EXISTS {CATALOG}")
+        spark.sql(f"CREATE CATALOG IF NOT EXISTS `{CATALOG}`")
     except Exception as e:
         raise Exception(
             f"Catalog '{CATALOG}' does not exist and could not be auto-created (no default storage "
             f"root). Create it once in the Catalog UI (Catalog > Create catalog) or with an explicit "
             f"MANAGED LOCATION, then re-run. Details: {e}")
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{SCHEMA}")
-spark.sql(f"USE {CATALOG}.{SCHEMA}")
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS `{CATALOG}`.`{SCHEMA}`")
+spark.sql(f"USE `{CATALOG}`.`{SCHEMA}`")
 
 # COMMAND ----------
 
@@ -586,7 +586,7 @@ dbutils.widgets.dropdown("stage_raw_csv", "false", ["true", "false"], "Stage ETL
 if dbutils.widgets.get("stage_raw_csv") == "true":
     from profiles.common import build_messy_facility_csv
     RAW_CSV = build_messy_facility_csv(FACILITY_SEED)   # deterministic messy CSV for this profile
-    spark.sql(f"CREATE VOLUME IF NOT EXISTS {CATALOG}.{SCHEMA}.landing")
+    spark.sql(f"CREATE VOLUME IF NOT EXISTS `{CATALOG}`.`{SCHEMA}`.landing")
     vol_path = f"/Volumes/{CATALOG}/{SCHEMA}/landing/facilities_raw.{PROFILE_NAME}.csv"
     dbutils.fs.put(vol_path, RAW_CSV, overwrite=True)
     print(f"Staged messy ETL-lab CSV ({PROFILE_NAME}) at {vol_path}")
