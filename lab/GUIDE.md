@@ -64,6 +64,7 @@ Answer the prompts like this:
 | Include a sample Python package that builds into a wheel file | `no` |
 | Use serverless compute | `yes` |
 | Default catalog for any tables created by this project | your workshop catalog, for example `dev-training` |
+| Use a personal schema for each user working on this project | `yes` |
 
 Accept the default for any other prompt. You now have an empty bundle in
 `/Workspace/Users/<you>/encounters_bundle`. Move into it:
@@ -89,15 +90,18 @@ In **Tab 2**, open `encounters_bundle/databricks.yml` and make these changes.
    host: https://adb-1234567890123456.7.azuredatabricks.net
    ```
 
-2. **Catalog and schema.** Under `targets: → dev: → variables:`, `catalog` already shows the catalog
-   you typed during `bundle init`. Check it, then set `schema` to your own schema. The template's
-   default, `${workspace.current_user.short_name}`, is your user name, which may not match your schema:
+2. **Catalog and schema.** Under `targets: → dev: → variables:`, check the two values `bundle init`
+   filled in:
 
    ```yaml
        variables:
-         catalog: <your_catalog>      # already filled in from bundle init
-         schema: <your_schema>        # for example: jane_doe
+         catalog: <your_catalog>                          # the catalog you typed
+         schema: ${workspace.current_user.short_name}     # your personal schema
    ```
+
+   `${workspace.current_user.short_name}` is a built-in substitution: your user name before the `@`,
+   with dots turned into underscores (for example `jane_doe`). If your schema has that name, leave it.
+   If your schema is named something else, replace the whole value with your schema's name.
 
 3. Save the file.
 
