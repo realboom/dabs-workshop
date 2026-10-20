@@ -1,0 +1,9 @@
+# Where the shared encounters data lives. The pipeline passes these to its SQL
+# as ${source_catalog} and ${source_schema}.
+variables:
+  source_catalog:
+    description: Catalog that holds the shared analyst101_shared schema
+    default: ${var.catalog}
+  source_schema:
+    description: Schema that holds the shared encounters star schema
+    default: analyst101_shared

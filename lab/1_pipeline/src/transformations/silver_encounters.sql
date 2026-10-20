@@ -1,0 +1,9 @@
+-- Silver: encounters from the shared source, with data quality expectations.
+-- ${source_catalog} and ${source_schema} come from the pipeline's configuration.
+CREATE MATERIALIZED VIEW silver_encounters (
+  CONSTRAINT valid_encounter_id EXPECT (encounter_id IS NOT NULL) ON VIOLATION DROP ROW,
+  CONSTRAINT valid_stay EXPECT (discharge_date >= admit_date) ON VIOLATION DROP ROW,
+  CONSTRAINT non_negative_charges EXPECT (total_charges >= 0)
+)
+COMMENT "Encounters with basic data quality checks."
+AS SELECT * FROM `${source_catalog}`.`${source_schema}`.fact_encounters;

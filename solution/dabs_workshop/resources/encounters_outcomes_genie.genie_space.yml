@@ -1,0 +1,71 @@
+# Genie agent on gold_encounters. serialized_space is the agent's full definition
+# (table, instructions, example SQL, sample questions) in the Genie export format.
+# The table name is built from your catalog and schema variables.
+resources:
+  genie_spaces:
+    encounters_outcomes_genie:
+      title: "Encounters & Outcomes Genie"
+      description: Ask questions about encounters, readmissions, and charges.
+      warehouse_id: ${var.warehouse_id}
+      serialized_space: |
+        {
+          "config": {
+            "sample_questions": [
+              {
+                "id": "0851fa53a09a433ba3fe67efcfbecea5",
+                "question": [
+                  "Which facilities have the highest 30-day readmission rate?"
+                ]
+              },
+              {
+                "id": "27f388c988f64f51b6f2d9b35ae40a20",
+                "question": [
+                  "How have total charges changed by month?"
+                ]
+              },
+              {
+                "id": "3ef339636c294f749309a86d631d87af",
+                "question": [
+                  "Which specialties have the most complications?"
+                ]
+              }
+            ]
+          },
+          "data_sources": {
+            "tables": [
+              {
+                "identifier": "${var.catalog}.${var.schema}.gold_encounters"
+              }
+            ]
+          },
+          "instructions": {
+            "example_question_sqls": [
+              {
+                "id": "61a297a1c6254d33b1aae7231fcd3990",
+                "question": [
+                  "What is the 30-day readmission rate by facility?"
+                ],
+                "sql": [
+                  "SELECT facility_name, ROUND(AVG(readmit_pct), 1) AS readmission_rate_pct, COUNT(*) AS encounters\n",
+                  "FROM ${var.catalog}.${var.schema}.gold_encounters\n",
+                  "GROUP BY facility_name\n",
+                  "HAVING COUNT(*) >= 200\n",
+                  "ORDER BY readmission_rate_pct DESC"
+                ]
+              }
+            ],
+            "text_instructions": [
+              {
+                "content": [
+                  "This Genie space answers questions about synthetic hospital encounters. There is no PHI.\n",
+                  "- Each row of gold_encounters is one encounter.\n",
+                  "- readmit_pct, mortality_pct, and complication_pct are 0 or 100 per encounter; average them to get a rate.\n",
+                  "- Express all rates as a percentage from 0 to 100, rounded to one decimal; show currency as whole dollars.\n",
+                  "- When ranking providers or facilities by a rate, only include those with at least 200 encounters unless the user asks otherwise."
+                ],
+                "id": "47e67262746348f1b04b9e000c07d704"
+              }
+            ]
+          },
+          "version": 2
+        }

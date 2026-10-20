@@ -1,0 +1,13 @@
+# Job that refreshes the pipeline every day. In dev mode the schedule is paused.
+resources:
+  jobs:
+    encounters_refresh:
+      name: encounters_refresh
+      trigger:
+        periodic:
+          interval: 1
+          unit: DAYS
+      tasks:
+        - task_key: refresh_pipeline
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.encounters_pipeline.id}

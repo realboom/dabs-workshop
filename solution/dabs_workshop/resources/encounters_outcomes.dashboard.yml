@@ -1,0 +1,10 @@
+# AI/BI dashboard on gold_encounters. The dashboard's query uses the bare table name;
+# dataset_catalog and dataset_schema point it at your catalog and schema.
+resources:
+  dashboards:
+    encounters_outcomes:
+      display_name: "Encounters & Outcomes"
+      file_path: ../src/encounters_outcomes.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: ${var.schema}
