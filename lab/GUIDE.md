@@ -62,6 +62,8 @@ Answer the prompts like this:
 | Include a job that runs a notebook | `no` |
 | Include an ETL pipeline | `no` |
 | Include a sample Python package that builds into a wheel file | `no` |
+| Use serverless compute | `yes` |
+| Default catalog for any tables created by this project | your workshop catalog, for example `dev-training` |
 
 Accept the default for any other prompt. You now have an empty bundle in
 `/Workspace/Users/<you>/dabs_workshop`. Move into it:
@@ -77,7 +79,7 @@ thing you deploy, and `src/` will hold their code.
 
 ### 0.3 Edit `databricks.yml`
 
-In **Tab 2**, open `dabs_workshop/databricks.yml` and make three changes.
+In **Tab 2**, open `dabs_workshop/databricks.yml` and make these changes.
 
 1. **Host.** The template wrote `host: http://127.0.0.1:7073`. That's the terminal's private address and
    only works inside this terminal. Replace it on **both** `host:` lines with your workspace URL. Copy
@@ -87,11 +89,13 @@ In **Tab 2**, open `dabs_workshop/databricks.yml` and make three changes.
    host: https://adb-1234567890123456.7.azuredatabricks.net
    ```
 
-2. **Catalog and schema.** Under `targets: → dev: → variables:`, set your own values:
+2. **Catalog and schema.** Under `targets: → dev: → variables:`, `catalog` already shows the catalog
+   you typed during `bundle init`. Check it, then set `schema` to your own schema. The template's
+   default, `${workspace.current_user.short_name}`, is your user name, which may not match your schema:
 
    ```yaml
        variables:
-         catalog: <your_catalog>      # for example: dev-training
+         catalog: <your_catalog>      # already filled in from bundle init
          schema: <your_schema>        # for example: jane_doe
    ```
 
