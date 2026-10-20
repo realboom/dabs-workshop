@@ -25,19 +25,36 @@ SOURCE_SCHEMA="${3:-analyst101_shared}"
 WAREHOUSE_NAME="${WAREHOUSE_NAME:-Serverless Starter Warehouse}"
 URL="${WORKSPACE_URL:-<workspace-url>}"
 
+# Run a databricks CLI command with JSON output. The CLI can print notices before the JSON
+# (for example about updates or optional add-ons), so drop anything before the first { or [.
+dbx_json() {
+  local out
+  out="$(databricks "$@" -o json 2>"$TMP/stderr")" || { echo "databricks $* failed:"; cat "$TMP/stderr"; exit 1; }
+  # Keep only the JSON document: from the first line that starts with { or [ to the line that closes it.
+  out="$(printf '%s\n' "$out" | sed -n '/^[[{]/,/^[]}]/p')"
+  [ -n "$out" ] || { echo "databricks $* returned no JSON:"; cat "$TMP/stderr"; exit 1; }
+  printf '%s\n' "$out"
+}
+
 HERE="$(cd "$(dirname "$0")" && pwd)"
 TMP="$(mktemp -d)"
-ME="$(databricks current-user me -o json | jq -r .userName)"
+ME="$(dbx_json current-user me | jq -r .userName)"
 HOME_PATH="/Users/$ME"
 
 fill() {
   sed -e "s|<catalog>|$CATALOG|g" -e "s|<schema>|$SCHEMA|g" -e "s|<source_schema>|$SOURCE_SCHEMA|g" "$1"
 }
 
-WAREHOUSE_ID="$(databricks warehouses list -o json | jq -r --arg n "$WAREHOUSE_NAME" '[.[] | select(.name == $n)][0].id // empty')"
+WAREHOUSE_ID="$(dbx_json warehouses list | jq -r --arg n "$WAREHOUSE_NAME" '[.[] | select(.name == $n)][0].id // empty')"
 [ -n "$WAREHOUSE_ID" ] || { echo "No SQL warehouse named '$WAREHOUSE_NAME'. Set WAREHOUSE_NAME and re-run."; exit 1; }
 
 echo "==> Building dev assets in $CATALOG.$SCHEMA (source: $CATALOG.$SOURCE_SCHEMA) as $ME"
+
+# 0. Your schema (created if it doesn't exist yet).
+if ! databricks schemas get "$CATALOG.$SCHEMA" > /dev/null 2>&1; then
+  dbx_json schemas create "$SCHEMA" "$CATALOG" > /dev/null
+  echo "    created schema $CATALOG.$SCHEMA"
+fi
 
 # 1. Pipeline: SQL files in your home folder, writing to your schema.
 PIPE_DIR="$HOME_PATH/encounters_pipeline"
@@ -49,11 +66,11 @@ done
 jq -n --arg c "$CATALOG" --arg s "$SCHEMA" --arg d "$PIPE_DIR" \
   '{name: "encounters_pipeline", catalog: $c, schema: $s, serverless: true, root_path: $d,
     libraries: [{glob: {include: ($d + "/transformations/**")}}]}' > "$TMP/pipeline.json"
-PIPELINE_ID="$(databricks pipelines create --json @"$TMP/pipeline.json" -o json | jq -r .pipeline_id)"
+PIPELINE_ID="$(dbx_json pipelines create --json @"$TMP/pipeline.json" | jq -r .pipeline_id)"
 echo "    pipeline  $PIPELINE_ID — running it once so gold_encounters exists..."
-UPDATE_ID="$(databricks pipelines start-update "$PIPELINE_ID" -o json | jq -r .update_id)"
+UPDATE_ID="$(dbx_json pipelines start-update "$PIPELINE_ID" | jq -r .update_id)"
 while :; do
-  STATE="$(databricks pipelines get-update "$PIPELINE_ID" "$UPDATE_ID" -o json | jq -r .update.state)"
+  STATE="$(dbx_json pipelines get-update "$PIPELINE_ID" "$UPDATE_ID" | jq -r .update.state)"
   case "$STATE" in COMPLETED) break ;; FAILED|CANCELED) echo "Pipeline update $STATE. Open the pipeline to see why."; exit 1 ;; esac
   sleep 10
 done
@@ -62,7 +79,7 @@ done
 fill "$HERE/encounters_outcomes.lvdash.json" > "$TMP/dashboard.lvdash.json"
 jq -n --rawfile d "$TMP/dashboard.lvdash.json" --arg w "$WAREHOUSE_ID" --arg p "$HOME_PATH" \
   '{display_name: "Encounters & Outcomes", warehouse_id: $w, parent_path: $p, serialized_dashboard: $d}' > "$TMP/dashboard.json"
-DASHBOARD_ID="$(databricks lakeview create --json @"$TMP/dashboard.json" -o json | jq -r .dashboard_id)"
+DASHBOARD_ID="$(dbx_json lakeview create --json @"$TMP/dashboard.json" | jq -r .dashboard_id)"
 echo "    dashboard $DASHBOARD_ID"
 
 # 3. Genie agent on your gold_encounters.
@@ -70,12 +87,12 @@ fill "$HERE/encounters_outcomes_genie.json" > "$TMP/space.json"
 jq -n --rawfile s "$TMP/space.json" --arg w "$WAREHOUSE_ID" --arg p "$HOME_PATH" \
   '{title: "Encounters & Outcomes Genie", description: "Ask questions about encounters, readmissions, and charges.",
     warehouse_id: $w, parent_path: $p, serialized_space: $s}' > "$TMP/genie.json"
-GENIE_ID="$(databricks genie create-space --json @"$TMP/genie.json" -o json | jq -r .space_id)"
+GENIE_ID="$(dbx_json genie create-space --json @"$TMP/genie.json" | jq -r .space_id)"
 echo "    genie     $GENIE_ID"
 
 # 4. Job: refreshes the pipeline daily, paused.
 sed "s|<pipeline_id>|$PIPELINE_ID|" "$HERE/encounters_refresh.job.json" > "$TMP/job.json"
-JOB_ID="$(databricks jobs create --json @"$TMP/job.json" -o json | jq -r .job_id)"
+JOB_ID="$(dbx_json jobs create --json @"$TMP/job.json" | jq -r .job_id)"
 echo "    job       $JOB_ID"
 
 cat <<EOF
