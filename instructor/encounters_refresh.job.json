@@ -1,0 +1,13 @@
+{
+  "name": "encounters_refresh",
+  "tasks": [
+    {
+      "task_key": "refresh_pipeline",
+      "pipeline_task": { "pipeline_id": "<pipeline_id>" }
+    }
+  ],
+  "trigger": {
+    "pause_status": "PAUSED",
+    "periodic": { "interval": 1, "unit": "DAYS" }
+  }
+}

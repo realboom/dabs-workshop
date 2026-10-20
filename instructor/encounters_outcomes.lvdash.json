@@ -1,0 +1,770 @@
+{
+  "datasets": [
+    {
+      "displayName": "Encounters (base)",
+      "name": "encounters",
+      "queryLines": [
+        "SELECT * FROM `<catalog>`.<schema>.gold_encounters"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "displayName": "Encounter & Outcomes Overview",
+      "layout": [
+        {
+          "position": {
+            "height": 1,
+            "width": 6,
+            "x": 0,
+            "y": 0
+          },
+          "widget": {
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Analyst 101 Workshop - Encounters & Outcomes"
+              ]
+            },
+            "name": "title"
+          }
+        },
+        {
+          "position": {
+            "height": 1,
+            "width": 6,
+            "x": 0,
+            "y": 1
+          },
+          "widget": {
+            "multilineTextboxSpec": {
+              "lines": [
+                "Synthetic medical encounters (no PHI). Aggregate by provider and facility, trend over time, drill into outcomes."
+              ]
+            },
+            "name": "subtitle"
+          }
+        },
+        {
+          "position": {
+            "height": 3,
+            "width": 2,
+            "x": 0,
+            "y": 2
+          },
+          "widget": {
+            "name": "kpi-encounters",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "encounters",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "COUNT(`encounter_id`)",
+                      "name": "count(encounter_id)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "displayName": "Total encounters",
+                  "fieldName": "count(encounter_id)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total encounters"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 3,
+            "width": 2,
+            "x": 2,
+            "y": 2
+          },
+          "widget": {
+            "name": "kpi-readmit",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "encounters",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "AVG(`readmit_pct`)",
+                      "name": "avg(readmit_pct)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "displayName": "Readmission rate %",
+                  "fieldName": "avg(readmit_pct)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Readmission rate %"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 3,
+            "width": 2,
+            "x": 4,
+            "y": 2
+          },
+          "widget": {
+            "name": "kpi-complication",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "encounters",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "AVG(`complication_pct`)",
+                      "name": "avg(complication_pct)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "displayName": "Complication rate %",
+                  "fieldName": "avg(complication_pct)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Complication rate %"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 1,
+            "width": 6,
+            "x": 0,
+            "y": 5
+          },
+          "widget": {
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Outcomes by facility and service line"
+              ]
+            },
+            "name": "hdr-outcomes"
+          }
+        },
+        {
+          "position": {
+            "height": 6,
+            "width": 3,
+            "x": 0,
+            "y": 6
+          },
+          "widget": {
+            "name": "bar-readmit-facility",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "encounters",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`facility_name`",
+                      "name": "facility_name"
+                    },
+                    {
+                      "expression": "AVG(`readmit_pct`)",
+                      "name": "avg(readmit_pct)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "displayName": "Facility",
+                  "fieldName": "facility_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "displayName": "Readmit %",
+                  "fieldName": "avg(readmit_pct)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "30-day readmission rate by facility"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 6,
+            "width": 3,
+            "x": 3,
+            "y": 6
+          },
+          "widget": {
+            "name": "bar-enc-category",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "encounters",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`clinical_category`",
+                      "name": "clinical_category"
+                    },
+                    {
+                      "expression": "COUNT(`encounter_id`)",
+                      "name": "count(encounter_id)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "displayName": "Clinical category",
+                  "fieldName": "clinical_category",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "displayName": "Encounters",
+                  "fieldName": "count(encounter_id)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Encounters by clinical category"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 6,
+            "width": 3,
+            "x": 0,
+            "y": 12
+          },
+          "widget": {
+            "name": "bar-comp-category",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "encounters",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`clinical_category`",
+                      "name": "clinical_category"
+                    },
+                    {
+                      "expression": "AVG(`complication_pct`)",
+                      "name": "avg(complication_pct)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "displayName": "Clinical category",
+                  "fieldName": "clinical_category",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "displayName": "Complication %",
+                  "fieldName": "avg(complication_pct)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Complication rate by clinical category"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 6,
+            "width": 3,
+            "x": 3,
+            "y": 12
+          },
+          "widget": {
+            "name": "bar-los-specialty",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "encounters",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`specialty`",
+                      "name": "specialty"
+                    },
+                    {
+                      "expression": "AVG(`length_of_stay_days`)",
+                      "name": "avg(length_of_stay_days)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "displayName": "Specialty",
+                  "fieldName": "specialty",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "displayName": "Avg LOS (days)",
+                  "fieldName": "avg(length_of_stay_days)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Average length of stay by specialty"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 1,
+            "width": 6,
+            "x": 0,
+            "y": 18
+          },
+          "widget": {
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Volume trend"
+              ]
+            },
+            "name": "hdr-trend"
+          }
+        },
+        {
+          "position": {
+            "height": 6,
+            "width": 6,
+            "x": 0,
+            "y": 19
+          },
+          "widget": {
+            "name": "line-monthly-region",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "encounters",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "DATE_TRUNC(\"MONTH\", `admit_date`)",
+                      "name": "monthly(admit_date)"
+                    },
+                    {
+                      "expression": "COUNT(`encounter_id`)",
+                      "name": "count(encounter_id)"
+                    },
+                    {
+                      "expression": "`region`",
+                      "name": "region"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "color": {
+                  "displayName": "Region",
+                  "fieldName": "region",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "x": {
+                  "displayName": "Month",
+                  "fieldName": "monthly(admit_date)",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "displayName": "Encounters",
+                  "fieldName": "count(encounter_id)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Monthly encounter volume by region"
+              },
+              "version": 3,
+              "widgetType": "line"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 1,
+            "width": 6,
+            "x": 0,
+            "y": 25
+          },
+          "widget": {
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Provider performance"
+              ]
+            },
+            "name": "hdr-providers"
+          }
+        },
+        {
+          "position": {
+            "height": 7,
+            "width": 6,
+            "x": 0,
+            "y": 26
+          },
+          "widget": {
+            "name": "table-providers",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "encounters",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`provider_name`",
+                      "name": "provider_name"
+                    },
+                    {
+                      "expression": "`specialty`",
+                      "name": "specialty"
+                    },
+                    {
+                      "expression": "`facility_name`",
+                      "name": "facility_name"
+                    },
+                    {
+                      "expression": "COUNT(`encounter_id`)",
+                      "name": "count(encounter_id)"
+                    },
+                    {
+                      "expression": "AVG(`readmit_pct`)",
+                      "name": "avg(readmit_pct)"
+                    },
+                    {
+                      "expression": "AVG(`complication_pct`)",
+                      "name": "avg(complication_pct)"
+                    },
+                    {
+                      "expression": "AVG(`length_of_stay_days`)",
+                      "name": "avg(length_of_stay_days)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "columns": [
+                  {
+                    "displayName": "Provider",
+                    "fieldName": "provider_name"
+                  },
+                  {
+                    "displayName": "Specialty",
+                    "fieldName": "specialty"
+                  },
+                  {
+                    "displayName": "Facility",
+                    "fieldName": "facility_name"
+                  },
+                  {
+                    "displayName": "Encounters",
+                    "fieldName": "count(encounter_id)"
+                  },
+                  {
+                    "displayName": "Readmit %",
+                    "fieldName": "avg(readmit_pct)"
+                  },
+                  {
+                    "displayName": "Complication %",
+                    "fieldName": "avg(complication_pct)"
+                  },
+                  {
+                    "displayName": "Avg LOS (days)",
+                    "fieldName": "avg(length_of_stay_days)"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Provider scorecard"
+              },
+              "version": 2,
+              "widgetType": "table"
+            }
+          }
+        }
+      ],
+      "name": "overview",
+      "pageType": "PAGE_TYPE_CANVAS"
+    },
+    {
+      "displayName": "Filters",
+      "layout": [
+        {
+          "position": {
+            "height": 2,
+            "width": 2,
+            "x": 0,
+            "y": 0
+          },
+          "widget": {
+            "name": "f-region",
+            "queries": [
+              {
+                "name": "ds_region",
+                "query": {
+                  "datasetName": "encounters",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`region`",
+                      "name": "region"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "Region",
+                    "fieldName": "region",
+                    "queryName": "ds_region"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Region"
+              },
+              "version": 2,
+              "widgetType": "filter-multi-select"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 2,
+            "width": 2,
+            "x": 2,
+            "y": 0
+          },
+          "widget": {
+            "name": "f-category",
+            "queries": [
+              {
+                "name": "ds_clinical_category",
+                "query": {
+                  "datasetName": "encounters",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`clinical_category`",
+                      "name": "clinical_category"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "Clinical category",
+                    "fieldName": "clinical_category",
+                    "queryName": "ds_clinical_category"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Clinical category"
+              },
+              "version": 2,
+              "widgetType": "filter-multi-select"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 2,
+            "width": 2,
+            "x": 4,
+            "y": 0
+          },
+          "widget": {
+            "name": "f-enctype",
+            "queries": [
+              {
+                "name": "ds_encounter_type",
+                "query": {
+                  "datasetName": "encounters",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`encounter_type`",
+                      "name": "encounter_type"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "Encounter type",
+                    "fieldName": "encounter_type",
+                    "queryName": "ds_encounter_type"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Encounter type"
+              },
+              "version": 2,
+              "widgetType": "filter-multi-select"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 2,
+            "width": 2,
+            "x": 0,
+            "y": 2
+          },
+          "widget": {
+            "name": "f-payer",
+            "queries": [
+              {
+                "name": "ds_payer_type",
+                "query": {
+                  "datasetName": "encounters",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`payer_type`",
+                      "name": "payer_type"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "Payer",
+                    "fieldName": "payer_type",
+                    "queryName": "ds_payer_type"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Payer"
+              },
+              "version": 2,
+              "widgetType": "filter-multi-select"
+            }
+          }
+        }
+      ],
+      "name": "filters",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS"
+    }
+  ]
+}

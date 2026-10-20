@@ -28,6 +28,7 @@ dabs-workshop/
 ├── setup/
 │   ├── generate_workshop_data.py   · instructor: builds the shared star schema (run once)
 │   └── profiles/                   · adult / pediatric data profiles used by the generator
+├── instructor/                     · the dev assets students import, and the script that builds them
 ├── tools/inline_genie.py           · students run it in Part 2 to make the Genie agent's table a variable
 ├── cicd/deploy-prod.yml            · example GitHub Actions workflow for Part 5
 └── solution/encounters_bundle/     · the finished bundle (after Parts 0–3)
@@ -35,32 +36,12 @@ dabs-workshop/
 
 ## Instructor setup (once per workspace)
 
-1. **Shared data.** Add this repo as a **Git folder**, open `setup/generate_workshop_data.py` on
-   serverless, and run it with widgets `catalog` = the workshop catalog, `schema` = `analyst101_shared`,
-   `profile` = `adult` or `pediatric`. It builds `fact_encounters` (80,000 rows) and the `dim_*` tables.
-2. **The four dev assets.** Build them in the UI in **your own schema** (not one a student will use),
-   with exactly these names so the guide's file names match:
+See **[instructor/README.md](instructor/README.md)**. In short:
 
-   | Asset | Name | What it does |
-   |---|---|---|
-   | ETL pipeline (serverless, SQL) | `encounters_pipeline` | `silver_encounters` (3 expectations) → `gold_encounters`, reading `analyst101_shared` |
-   | AI/BI dashboard | `Encounters & Outcomes` | One dataset, `SELECT * FROM <catalog>.<your_schema>.gold_encounters` |
-   | Genie agent | `Encounters & Outcomes Genie` | On `gold_encounters`, with instructions and sample questions |
-   | Job | `encounters_refresh` | One pipeline task that refreshes `encounters_pipeline`, daily (paused) |
-
-   The SQL and the dashboard layout are in `solution/encounters_bundle/src/` if you want to start from them.
-3. **Share and grant.** Give students the link to each asset, and grant the students' group:
-   - **Can view** on the pipeline, dashboard, Genie agent, and job
-   - **Can read** on the pipeline's source folder in your home folder (`generate` downloads the SQL from it)
-   - Read access to the shared data:
-     ```sql
-     GRANT USE CATALOG ON CATALOG `<workshop_catalog>` TO `<students_group>`;
-     GRANT USE SCHEMA, SELECT ON SCHEMA `<workshop_catalog>`.analyst101_shared TO `<students_group>`;
-     ```
-4. **Each student** needs their own schema in the workshop catalog (ownership, or `USE SCHEMA`,
-   `CREATE TABLE`, and `CREATE MATERIALIZED VIEW`), serverless notebooks (for the web terminal),
-   serverless pipelines, Genie, and **Can use** on the **Serverless Starter Warehouse** (the bundle
-   looks it up by that name).
+1. Run `setup/generate_workshop_data` to load the shared `analyst101_shared` data.
+2. Run `bash instructor/build_dev_assets.sh <catalog> <your_schema>` in a serverless notebook's web
+   terminal. It creates the four dev assets students import, in their "built in dev" form.
+3. Share the four links it prints, and grant students **Can view** on them and read access to the data.
 
 Catalog names with hyphens (for example `dev-training`) work: the pipeline SQL quotes them, and Genie
 quotes them in the SQL it generates.

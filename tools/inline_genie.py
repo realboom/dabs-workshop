@@ -36,7 +36,9 @@ space = json.load(open(json_path))
 tables = [t["identifier"] for t in space.get("data_sources", {}).get("tables", [])]
 body = json.dumps(space, indent=2)
 for ident in tables:
-    table = ident.split(".")[-1]
+    catalog, schema, table = ident.split(".")
+    # Example SQL may quote the names (needed for catalogs with hyphens); replace both forms.
+    body = body.replace(f"`{catalog}`.`{schema}`.{table}", "`${var.catalog}`.`${var.schema}`." + table)
     body = body.replace(ident, "${var.catalog}.${var.schema}." + table)
 
 block = indent + "serialized_space: |\n" + "\n".join(indent + "  " + line for line in body.splitlines())
