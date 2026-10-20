@@ -33,7 +33,7 @@ dabs-workshop/
 │   ├── 2_dashboard/
 │   ├── 3_genie/
 │   └── 4_job/
-└── solution/dabs_workshop/         · the finished bundle (bundle init + all four steps)
+└── solution/encounters_bundle/     · the finished bundle (bundle init + all four steps)
 ```
 
 ## Instructor setup (once per workspace)

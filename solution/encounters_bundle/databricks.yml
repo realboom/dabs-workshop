@@ -3,7 +3,7 @@
 # then the lab/ step folders were copied in one at a time.
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
 bundle:
-  name: dabs_workshop
+  name: encounters_bundle
   uuid: 4d6b20b6-81e7-4385-b282-e448187af41f
 
 include:

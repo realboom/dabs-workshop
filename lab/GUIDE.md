@@ -58,7 +58,7 @@ Answer the prompts like this:
 
 | Prompt | Answer |
 |---|---|
-| Unique name for this project | `dabs_workshop` |
+| Unique name for this project | `encounters_bundle` |
 | Include a job that runs a notebook | `no` |
 | Include an ETL pipeline | `no` |
 | Include a sample Python package that builds into a wheel file | `no` |
@@ -66,10 +66,10 @@ Answer the prompts like this:
 | Default catalog for any tables created by this project | your workshop catalog, for example `dev-training` |
 
 Accept the default for any other prompt. You now have an empty bundle in
-`/Workspace/Users/<you>/dabs_workshop`. Move into it:
+`/Workspace/Users/<you>/encounters_bundle`. Move into it:
 
 ```bash
-cd dabs_workshop
+cd encounters_bundle
 ls
 ```
 
@@ -79,7 +79,7 @@ thing you deploy, and `src/` will hold their code.
 
 ### 0.3 Edit `databricks.yml`
 
-In **Tab 2**, open `dabs_workshop/databricks.yml` and make these changes.
+In **Tab 2**, open `encounters_bundle/databricks.yml` and make these changes.
 
 1. **Host.** The template wrote `host: http://127.0.0.1:7073`. That's the terminal's private address and
    only works inside this terminal. Replace it on **both** `host:` lines with your workspace URL. Copy
@@ -340,7 +340,7 @@ You used the main bundle features:
 | Resource references | `${resources.pipelines.encounters_pipeline.id}` |
 | `validate` → `deploy` → `run` | Every part |
 
-The finished bundle is in `dabs-workshop/solution/dabs_workshop` if you want to compare.
+The finished bundle is in `dabs-workshop/solution/encounters_bundle` if you want to compare.
 
 **Cleaning up (optional).** `databricks bundle destroy` deletes everything the bundle deployed,
 **including the pipeline's tables** in your schema. Only run it if you're done with them.
