@@ -212,7 +212,7 @@ Every value that ties an asset to the dev environment becomes a **variable** (se
 
 | File | Hard-coded dev value | Change it to |
 |---|---|---|
-| `resources/variables.yml` (new) | — | one place that declares every variable |
+| `databricks.yml` | only `catalog` and `schema` are declared | three more variables, and the dev source values |
 | `encounters_pipeline.pipeline.yml` | `catalog:` and `schema:` | `${var.catalog}` and `${var.schema}` |
 | `silver_encounters.sql`, `gold_encounters.sql` | the dev source catalog and schema | `${source_catalog}` and `${source_schema}` |
 | `encounters_outcomes.dashboard.yml` | `warehouse_id:` | `${var.warehouse_id}`, plus `dataset_catalog` / `dataset_schema` |
@@ -220,18 +220,17 @@ Every value that ties an asset to the dev environment becomes a **variable** (se
 | `encounters_outcomes_genie.genie_space.yml` | `warehouse_id:`, `parent_path:`, and the table inside the JSON | `${var.warehouse_id}`, no `parent_path`, and a table built from variables |
 | `encounters_refresh.job.yml` | `pipeline_id:` and `pause_status: PAUSED` | a reference to your pipeline, and no `pause_status` |
 
-### 2.1 Declare your variables in one file
+### 2.1 Add the variables to `databricks.yml`
 
-Create a new file, `resources/variables.yml`. Every `.yml` file in `resources/` is included in the
-bundle automatically.
+`databricks.yml` has a top-level `variables:` block, which `bundle init` created with two variables:
+`catalog` and `schema`. Add three more below them, so the block reads:
 
 ```yaml
-# Variable declarations. Each target in databricks.yml sets their values.
 variables:
   catalog:
-    description: Catalog the pipeline writes to
+    description: The catalog to use
   schema:
-    description: Schema the pipeline writes to
+    description: The schema to use
   source_catalog:
     description: Catalog that holds the source data the pipeline reads
   source_schema:
@@ -242,22 +241,23 @@ variables:
       warehouse: Serverless Starter Warehouse
 ```
 
-`warehouse_id` is a **lookup** variable. Warehouse IDs are long and differ between workspaces, so
-the bundle finds the warehouse by name when you deploy.
+This block **declares** each variable: its name, a description, and for `warehouse_id` a **lookup**.
+Warehouse IDs are long and differ between workspaces, so the bundle finds the warehouse by name when
+you deploy. The block doesn't hold any environment's values.
 
-Then open `databricks.yml`:
+The values go under each target. Under `targets: → dev: → variables:`, add the dev source values
+below `catalog` and `schema`:
 
-1. Delete the template's top-level `variables:` block (the `catalog:` and `schema:` declarations). They
-   now live in `variables.yml`, and a variable can only be declared once.
-2. Under `targets: → dev: → variables:`, add the dev source values below `catalog` and `schema`:
+```yaml
+    variables:
+      catalog: <your_catalog>
+      schema: <your_schema>
+      source_catalog: <your_catalog>
+      source_schema: analyst101_shared
+```
 
-   ```yaml
-       variables:
-         catalog: <your_catalog>
-         schema: <your_schema>
-         source_catalog: <your_catalog>
-         source_schema: analyst101_shared
-   ```
+Each variable is declared once, and each target sets its own values. Larger projects often move the
+declarations into a separate file, such as `resources/variables.yml`, to keep `databricks.yml` short.
 
 ### 2.2 Pipeline: where it writes and what it reads
 
@@ -490,7 +490,7 @@ Your instructor will walk through it.
 |---|---|
 | Templates (`bundle init`) | Part 0 |
 | Importing existing assets (`bundle generate`) | Part 1 |
-| Variables declared in their own file, set per target | `resources/variables.yml` |
+| Variables declared once, set per target | `databricks.yml` |
 | Variables passed into pipeline SQL | `${source_catalog}`, `${source_schema}` |
 | Lookup variables | `warehouse_id` → `Serverless Starter Warehouse` |
 | Resource references | `${resources.pipelines.encounters_pipeline.id}` |
