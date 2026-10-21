@@ -16,6 +16,7 @@ resources:
         enabled: true
       timeout_seconds: 0
       trigger:
+        pause_status: PAUSED
         periodic:
           interval: 1
           unit: DAYS

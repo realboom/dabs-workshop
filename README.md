@@ -58,7 +58,7 @@ quotes them in the SQL it generates.
   student's first `deploy` fails on the agent. Running the job (which runs the pipeline) and deploying
   again fixes it. CI/CD has the same first-deploy ordering in a new environment.
 - **Generated dev values.** `generate` copies everything, including the dev schema, the warehouse ID,
-  the job's `pause_status: PAUSED`, and the Genie agent's `parent_path` (the builder's home folder).
-  Part 2 removes each of them.
+  the job's pipeline ID, and the Genie agent's `parent_path` (the builder's home folder). Part 2
+  replaces each of them. The job's `pause_status: PAUSED` is kept: a paused schedule can still be run.
 - **Destroy can leave tables.** `bundle destroy` deletes the pipeline but can leave its tables in the
   schema, still marked as owned by the deleted pipeline. Drop them before deploying into that schema again.

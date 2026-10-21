@@ -216,7 +216,7 @@ Every value that ties an asset to the dev environment becomes a **variable** (se
 | `silver_encounters.sql`, `gold_encounters.sql` | the dev source catalog and schema | `${source_catalog}` and `${source_schema}` |
 | `encounters_outcomes.dashboard.yml` | `warehouse_id:` | `${var.warehouse_id}`, plus `dataset_catalog` / `dataset_schema` |
 | `encounters_outcomes_genie.genie_space.yml` and its JSON | `warehouse_id:`, `parent_path:`, and the table inside the JSON | `${var.warehouse_id}`, no `parent_path`, and the definition moved into the YAML with a table built from variables |
-| `encounters_refresh.job.yml` | `pipeline_id:` and `pause_status: PAUSED` | a reference to your pipeline, and no `pause_status` |
+| `encounters_refresh.job.yml` | `pipeline_id:` | a reference to your pipeline |
 
 ### 2.1 Add the variables to `databricks.yml`
 
@@ -399,18 +399,17 @@ When the agent changes later in dev, export it again with
 
 ### 2.5 Job
 
-In `resources/encounters_refresh.job.yml`:
+In `resources/encounters_refresh.job.yml`, change `pipeline_id: <the dev pipeline's ID>` to
 
-1. Change `pipeline_id: <the dev pipeline's ID>` to
+```yaml
+            pipeline_id: ${resources.pipelines.encounters_pipeline.id}
+```
 
-   ```yaml
-               pipeline_id: ${resources.pipelines.encounters_pipeline.id}
-   ```
+That's a **resource reference**: the job refreshes whichever pipeline this bundle deployed to the same
+target. In dev that's your pipeline; in production, the production pipeline.
 
-   That's a **resource reference**: the job refreshes whichever pipeline this bundle deployed to the
-   same target. In dev that's your pipeline; in production, the production pipeline.
-2. Delete the line `pause_status: PAUSED`. The dev job was paused, and `generate` copied that over.
-   Left in, the production job would never run. Development mode pauses schedules in dev for you.
+The job also keeps `pause_status: PAUSED`, copied from the dev job. A paused schedule only stops the
+automatic daily run; you, another job, or CI/CD can still start the job at any time.
 
 ### 2.6 Validate
 
@@ -464,7 +463,6 @@ create:
 databricks bundle validate -t dev  -o json | jq '.resources.pipelines.encounters_pipeline | {name, catalog, schema}'
 databricks bundle validate -t prod -o json | jq '.resources.pipelines.encounters_pipeline | {name, catalog, schema, configuration}'
 databricks bundle validate -t prod -o json | jq '.resources.genie_spaces[].serialized_space | fromjson | .data_sources.tables[].identifier'
-databricks bundle validate -t prod -o json | jq '.resources.jobs.encounters_refresh.trigger'
 ```
 
 | | dev | prod |
@@ -472,7 +470,6 @@ databricks bundle validate -t prod -o json | jq '.resources.jobs.encounters_refr
 | Pipeline name | `[dev <your_name>] encounters_pipeline` | `encounters_pipeline` |
 | Writes to | your schema | the production schema |
 | Genie agent reads | your `gold_encounters` | production `gold_encounters` |
-| Job schedule | paused | runs daily |
 
 Same files, different environment. That's the point of the bundle.
 
