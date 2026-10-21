@@ -384,14 +384,13 @@ definition into the YAML, where variables are substituted:
    inside the query.
 5. Delete `src/encounters_outcomes_genie.geniespace.json`. The YAML now holds the definition.
 
-Check the result for both targets:
+Check the result:
 
 ```bash
-databricks bundle validate -t dev  -o json | jq '.resources.genie_spaces[].serialized_space | fromjson | .data_sources.tables[].identifier'
-databricks bundle validate -t prod -o json | jq '.resources.genie_spaces[].serialized_space | fromjson | .data_sources.tables[].identifier'
+databricks bundle validate -t dev -o json | jq '.resources.genie_spaces[].serialized_space | fromjson | .data_sources.tables[].identifier'
 ```
 
-The first prints your table, the second the production table. If `validate` reports a YAML error,
+It prints your table, for example `"dev-training.jane_doe.gold_encounters"`. If `validate` reports a YAML error,
 check that every pasted line is indented further than `serialized_space:`. If `jq` reports
 `Invalid numeric literal`, the JSON is broken; most often the `identifier` has lost its double quotes.
 
