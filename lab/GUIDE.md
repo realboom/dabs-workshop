@@ -379,6 +379,9 @@ definition into the YAML, where variables are substituted:
              "FROM `${var.catalog}`.`${var.schema}`.gold_encounters\n",
    ```
 
+   The two lines look alike but aren't the same. The `identifier` is a plain JSON string: keep its
+   double quotes and **don't** add backticks. Only the SQL line uses backticks, to quote the names
+   inside the query.
 5. Delete `src/encounters_outcomes_genie.geniespace.json`. The YAML now holds the definition.
 
 Check the result for both targets:
@@ -389,7 +392,8 @@ databricks bundle validate -t prod -o json | jq '.resources.genie_spaces[].seria
 ```
 
 The first prints your table, the second the production table. If `validate` reports a YAML error,
-check that every pasted line is indented further than `serialized_space:`.
+check that every pasted line is indented further than `serialized_space:`. If `jq` reports
+`Invalid numeric literal`, the JSON is broken; most often the `identifier` has lost its double quotes.
 
 When the agent changes later in dev, export it again with
 `databricks bundle generate genie-space --existing-id <id> --force` and repeat these steps.
