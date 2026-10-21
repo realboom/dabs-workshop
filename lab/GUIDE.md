@@ -216,7 +216,6 @@ Every value that ties an asset to the dev environment becomes a **variable** (se
 | `encounters_pipeline.pipeline.yml` | `catalog:` and `schema:` | `${var.catalog}` and `${var.schema}` |
 | `silver_encounters.sql`, `gold_encounters.sql` | the dev source catalog and schema | `${source_catalog}` and `${source_schema}` |
 | `encounters_outcomes.dashboard.yml` | `warehouse_id:` | `${var.warehouse_id}`, plus `dataset_catalog` / `dataset_schema` |
-| `encounters_outcomes.lvdash.json` | the full table name in the query | the bare table name, `gold_encounters` |
 | `encounters_outcomes_genie.genie_space.yml` | `warehouse_id:`, `parent_path:`, and the table inside the JSON | `${var.warehouse_id}`, no `parent_path`, and a table built from variables |
 | `encounters_refresh.job.yml` | `pipeline_id:` and `pause_status: PAUSED` | a reference to your pipeline, and no `pause_status` |
 
@@ -300,38 +299,36 @@ In `resources/encounters_outcomes.dashboard.yml`, replace the `warehouse_id:` li
       dataset_schema: ${var.schema}
 ```
 
-Then edit the dashboard file itself, `src/encounters_outcomes.lvdash.json`. The workspace file browser
-shows it as a dashboard named `encounters_outcomes`, and clicking it opens the dashboard editor rather
-than the file, so make this edit from the terminal. Only **one line** changes: the dashboard's query,
-near the top of the file. Before:
+You don't need to edit the dashboard file itself. Its dataset stores the dev catalog and schema as
+settings, next to a query that uses the bare table name. In the terminal, `head -12
+src/encounters_outcomes.lvdash.json` shows:
 
 ```json
   "datasets": [
     {
+      "catalog": "<your_catalog>",
       "displayName": "Encounters (base)",
       "name": "encounters",
       "queryLines": [
-        "SELECT * FROM `<your_catalog>`.<dev_schema>.gold_encounters"
-      ]
+        "SELECT * FROM gold_encounters"
+      ],
+      "schema": "<dev_schema>"
     }
   ],
 ```
 
-Your file shows the real names, for example `` `dev-training`.instructor_demo.gold_encounters ``:
-the catalog and the dev schema the dashboard was built on. The edit removes them, leaving the bare
-table name. In **Tab 1** run:
+When you deploy, `dataset_catalog` and `dataset_schema` **replace** those `catalog` and `schema`
+settings with the target's values: your schema in dev, the production schema in prod. The file stays
+as it is; the bundle swaps the values in the copy it deploys.
 
-```bash
-sed -i 's/SELECT \* FROM [^"]*gold_encounters/SELECT * FROM gold_encounters/' src/encounters_outcomes.lvdash.json
-grep gold_encounters src/encounters_outcomes.lvdash.json
-```
+That only works because the query uses the bare table name. A query that names the full table, such
+as `` SELECT * FROM `dev-training`.instructor_demo.gold_encounters ``, isn't changed by
+`dataset_catalog` or `dataset_schema`. If you bring in a dashboard written that way, change its
+queries to the bare table name, and set the catalog and schema on the dataset instead.
 
-`grep` should print `"SELECT * FROM gold_encounters"`. If `sed` also prints
-`preserving permissions … Operation not permitted`, ignore it; the edit still applies.
-
-Leave everything else in the file alone. `dataset_catalog` and `dataset_schema` fill in
-the catalog and schema for any table name in the dashboard that doesn't have them, so with this
-change your dev copy reads your `gold_encounters`, and production reads the production one.
+> **Seeing it in the editor.** The workspace file browser shows `src/encounters_outcomes.lvdash.json`
+> as a dashboard named `encounters_outcomes`. Opening it opens the dashboard editor, which reads and
+> saves this same file. You don't need to change anything there.
 
 ### 2.4 Genie agent
 
@@ -402,7 +399,8 @@ databricks bundle validate
 ```
 
 Fix anything it reports, then search your `resources/` and `src/` files for the dev catalog and schema
-names. Outside `databricks.yml`, they shouldn't appear anywhere.
+names. Outside `databricks.yml`, the only place they should still appear is the dashboard file's
+`catalog` and `schema` settings, which `dataset_catalog` and `dataset_schema` replace.
 
 ---
 

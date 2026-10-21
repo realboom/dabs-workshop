@@ -1,11 +1,13 @@
 {
   "datasets": [
     {
+      "catalog": "<your_catalog>",
       "displayName": "Encounters (base)",
       "name": "encounters",
       "queryLines": [
         "SELECT * FROM gold_encounters"
-      ]
+      ],
+      "schema": "<dev_schema>"
     }
   ],
   "pages": [

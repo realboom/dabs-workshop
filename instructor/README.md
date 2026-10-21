@@ -76,7 +76,7 @@ students generate match the guide:
 | Asset | Name | How |
 |---|---|---|
 | Pipeline | `encounters_pipeline` | **Jobs & Pipelines → Create → ETL pipeline**, serverless, default catalog and schema = yours. Add the two SQL files from `pipeline/` (replace `<catalog>` and `<source_schema>`), then run it. |
-| Dashboard | `Encounters & Outcomes` | **Dashboards → Create → Import dashboard from file**, using `encounters_outcomes.lvdash.json` with `<catalog>` and `<schema>` replaced. Keep it to **one dataset** that names the full table; the student guide edits that one query. |
+| Dashboard | `Encounters & Outcomes` | **Dashboards → Create → Import dashboard from file**, using `encounters_outcomes.lvdash.json` with `<catalog>` and `<schema>` replaced. Keep it to **one dataset**, with the catalog and schema set on the dataset and the bare table name (`gold_encounters`) in the query. |
 | Genie agent | `Encounters & Outcomes Genie` | **Genie → New**, add your `gold_encounters`, then paste the instructions, example SQL, and sample questions from `encounters_outcomes_genie.json`. |
 | Job | `encounters_refresh` | **Jobs & Pipelines → Create → Job**, one **Pipeline** task on `encounters_pipeline`, a daily schedule, then **Pause**. |
 
