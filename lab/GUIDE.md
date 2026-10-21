@@ -425,9 +425,10 @@ names. Outside `databricks.yml`, the only place they should still appear is the 
 
 ## Part 3 — Define production (10 min)
 
-### 3.1 Set the production values
+### 3.1 Set up the production target
 
-`bundle init` already created a `prod` target in `databricks.yml`:
+`bundle init` created a `prod` target in `databricks.yml`, but it's written for a person deploying from
+their own folder:
 
 ```yaml
   prod:
@@ -438,21 +439,48 @@ names. Outside `databricks.yml`, the only place they should still appear is the 
     variables:
       catalog: <your_catalog>
       schema: prod
-      source_catalog: <your_catalog>
-      source_schema: analyst101_shared
     permissions:
       - user_name: <you>
         level: CAN_MANAGE
 ```
 
-Under `prod: → variables:`, set `catalog` and `schema` to the production values your instructor gives
-you, and add `source_catalog` and `source_schema` for the production source data. For the workshop,
-use the same source values as dev. In a
-real project, `host` would usually be the **production workspace**, and `root_path`, `permissions`,
-and a `run_as` service principal would be set for the CI/CD identity. You'll see those in Part 5.
+Production isn't deployed by a person. CI/CD deploys it as a **service principal**, so change the
+`prod` target to:
 
-`mode: production` tells the bundle this is a real deployment: no `[dev …]` name prefix, schedules
-run, and it checks that the deployment is going somewhere deliberate.
+```yaml
+  prod:
+    mode: production
+    workspace:
+      host: https://<your-workspace-url>
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      service_principal_name: <cicd_service_principal_id>
+    variables:
+      catalog: <prod_catalog>
+      schema: <prod_schema>
+      source_catalog: <prod_catalog>
+      source_schema: analyst101_shared
+    permissions:
+      - service_principal_name: <cicd_service_principal_id>
+        level: CAN_MANAGE
+      - group_name: <your_team_group>
+        level: CAN_VIEW
+```
+
+Your instructor will give you the service principal's application ID, the team group, and the
+production catalog and schema. What each part does:
+
+| Setting | Why |
+|---|---|
+| `root_path` | `${workspace.current_user.userName}` is whoever deploys. When CI/CD deploys, that's the service principal, so production lives in its folder, not in a person's. |
+| `run_as` | The pipeline and job run as the service principal, so production doesn't depend on anyone's account. |
+| `permissions` | The service principal manages what it deploys; your team can view it. Use groups, not individual people. |
+| `variables` | The production catalog and schema, for writing and for reading the source data |
+
+In a real project, `host` is usually the **production workspace**, not the one you develop in.
+
+`mode: production` tells the bundle this is a real deployment: no `[dev …]` name prefix, and it checks
+that the deployment goes somewhere deliberate.
 
 ### 3.2 Compare dev and production without deploying
 
@@ -463,6 +491,7 @@ create:
 databricks bundle validate -t dev  -o json | jq '.resources.pipelines.encounters_pipeline | {name, catalog, schema}'
 databricks bundle validate -t prod -o json | jq '.resources.pipelines.encounters_pipeline | {name, catalog, schema, configuration}'
 databricks bundle validate -t prod -o json | jq '.resources.genie_spaces[].serialized_space | fromjson | .data_sources.tables[].identifier'
+databricks bundle validate -t prod -o json | jq '{root_path: .workspace.root_path, run_as}'
 ```
 
 | | dev | prod |
@@ -470,8 +499,14 @@ databricks bundle validate -t prod -o json | jq '.resources.genie_spaces[].seria
 | Pipeline name | `[dev <your_name>] encounters_pipeline` | `encounters_pipeline` |
 | Writes to | your schema | the production schema |
 | Genie agent reads | your `gold_encounters` | production `gold_encounters` |
+| Runs as | you | the service principal |
+| Deployed to | your `.bundle` folder | the deploying identity's folder (the service principal's, in CI/CD) |
 
 Same files, different environment. That's the point of the bundle.
+
+`validate -t prod` also prints a recommendation to add *your* identity to `permissions`, and a
+warning about your folder's permissions. Both are expected: you're validating, but production is
+deployed by the service principal, which is already in `permissions`.
 
 ---
 

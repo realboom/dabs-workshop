@@ -41,16 +41,20 @@ targets:
       source_catalog: <your_catalog>
       source_schema: analyst101_shared
   prod:
+    # Production is deployed by CI/CD as a service principal (see cicd/deploy-prod.yml).
     mode: production
     workspace:
       host: https://<your-workspace-url>
-      # We explicitly deploy to /Workspace/Users/<you> to make sure we only have a single copy.
-      root_path: /Workspace/Users/<you>/.bundle/${bundle.name}/${bundle.target}
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      service_principal_name: <cicd_service_principal_id>
     variables:
-      catalog: <your_catalog>
-      schema: prod
-      source_catalog: <your_catalog>
+      catalog: <prod_catalog>
+      schema: <prod_schema>
+      source_catalog: <prod_catalog>
       source_schema: analyst101_shared
     permissions:
-      - user_name: <you>
+      - service_principal_name: <cicd_service_principal_id>
         level: CAN_MANAGE
+      - group_name: <your_team_group>
+        level: CAN_VIEW

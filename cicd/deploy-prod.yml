@@ -8,7 +8,8 @@
 #   variable DATABRICKS_HOST           the production workspace URL
 #   secret   DATABRICKS_CLIENT_ID      the service principal's application (client) ID
 #   secret   DATABRICKS_CLIENT_SECRET  an OAuth secret for that service principal
-# The prod target in databricks.yml should set run_as to the same service principal.
+# The prod target in databricks.yml sets run_as and permissions for the same service principal,
+# and its root_path uses ${workspace.current_user.userName}, which is that service principal here.
 name: Deploy bundle to production
 
 on:
