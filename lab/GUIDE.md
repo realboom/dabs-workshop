@@ -166,7 +166,7 @@ Your bundle now has:
 | `resources/encounters_pipeline.pipeline.yml` | The pipeline definition |
 | `src/transformations/silver_encounters.sql`, `gold_encounters.sql` | The pipeline's SQL, downloaded from the original |
 | `resources/encounters_outcomes.dashboard.yml` | The dashboard definition |
-| `src/encounters_outcomes.lvdash.json` | The dashboard's layout and queries |
+| `src/encounters_outcomes.lvdash.json` | The dashboard's layout and queries. The workspace file browser shows it as a dashboard named `encounters_outcomes` |
 | `resources/encounters_outcomes_genie.genie_space.yml` | The Genie agent definition |
 | `src/encounters_outcomes_genie.geniespace.json` | The agent's tables, instructions, and example questions |
 | `resources/encounters_refresh.job.yml` | The job definition |
@@ -300,12 +300,10 @@ In `resources/encounters_outcomes.dashboard.yml`, replace the `warehouse_id:` li
       dataset_schema: ${var.schema}
 ```
 
-Then edit the dashboard file itself. Open `src/encounters_outcomes.lvdash.json` in **Tab 2**. It's
-long (about 770 lines, because it holds every chart's layout), but you change only **one line**: the
-dashboard's query, near the top. It's the only line in the file that contains `gold_encounters`, so
-search for that with **Ctrl+F** (**Cmd+F** on a Mac).
-
-Before:
+Then edit the dashboard file itself, `src/encounters_outcomes.lvdash.json`. The workspace file browser
+shows it as a dashboard named `encounters_outcomes`, and clicking it opens the dashboard editor rather
+than the file, so make this edit from the terminal. Only **one line** changes: the dashboard's query,
+near the top of the file. Before:
 
 ```json
   "datasets": [
@@ -320,18 +318,18 @@ Before:
 ```
 
 Your file shows the real names, for example `` `dev-training`.instructor_demo.gold_encounters ``:
-the catalog and the dev schema the dashboard was built on.
+the catalog and the dev schema the dashboard was built on. The edit removes them, leaving the bare
+table name. In **Tab 1** run:
 
-After: delete the catalog and schema, everything between `FROM ` and `gold_encounters`. Keep the
-quotation marks.
-
-```json
-      "queryLines": [
-        "SELECT * FROM gold_encounters"
-      ]
+```bash
+sed -i 's/SELECT \* FROM [^"]*gold_encounters/SELECT * FROM gold_encounters/' src/encounters_outcomes.lvdash.json
+grep gold_encounters src/encounters_outcomes.lvdash.json
 ```
 
-Save the file and leave everything else in it alone. `dataset_catalog` and `dataset_schema` fill in
+`grep` should print `"SELECT * FROM gold_encounters"`. If `sed` also prints
+`preserving permissions … Operation not permitted`, ignore it; the edit still applies.
+
+Leave everything else in the file alone. `dataset_catalog` and `dataset_schema` fill in
 the catalog and schema for any table name in the dashboard that doesn't have them, so with this
 change your dev copy reads your `gold_encounters`, and production reads the production one.
 
