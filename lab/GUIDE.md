@@ -300,15 +300,40 @@ In `resources/encounters_outcomes.dashboard.yml`, replace the `warehouse_id:` li
       dataset_schema: ${var.schema}
 ```
 
-Then open `src/encounters_outcomes.lvdash.json`, find the query near the top (it ends with
-`.gold_encounters"`), and change it to the bare table name:
+Then edit the dashboard file itself. Open `src/encounters_outcomes.lvdash.json` in **Tab 2**. It's
+long (about 770 lines, because it holds every chart's layout), but you change only **one line**: the
+dashboard's query, near the top. It's the only line in the file that contains `gold_encounters`, so
+search for that with **Ctrl+F** (**Cmd+F** on a Mac).
+
+Before:
 
 ```json
-        "SELECT * FROM gold_encounters"
+  "datasets": [
+    {
+      "displayName": "Encounters (base)",
+      "name": "encounters",
+      "queryLines": [
+        "SELECT * FROM `<your_catalog>`.<dev_schema>.gold_encounters"
+      ]
+    }
+  ],
 ```
 
-`dataset_catalog` and `dataset_schema` fill in the catalog and schema for any table name in the
-dashboard that doesn't have them.
+Your file shows the real names, for example `` `dev-training`.instructor_demo.gold_encounters ``:
+the catalog and the dev schema the dashboard was built on.
+
+After: delete the catalog and schema, everything between `FROM ` and `gold_encounters`. Keep the
+quotation marks.
+
+```json
+      "queryLines": [
+        "SELECT * FROM gold_encounters"
+      ]
+```
+
+Save the file and leave everything else in it alone. `dataset_catalog` and `dataset_schema` fill in
+the catalog and schema for any table name in the dashboard that doesn't have them, so with this
+change your dev copy reads your `gold_encounters`, and production reads the production one.
 
 ### 2.4 Genie agent
 
