@@ -36,8 +36,7 @@ You need:
   dashboard, the Genie agent, and the job.
 - **This repo in your workspace.** In the workspace sidebar, open your home folder, select
   **Workspace → Create → Git folder**, and paste `https://github.com/realboom/dabs-workshop`. It appears as
-  `dabs-workshop` in your home folder. You'll use one helper script from it, and it holds the finished
-  bundle if you want to compare.
+  `dabs-workshop` in your home folder. It holds the finished bundle if you want to compare.
 
 Throughout the lab, you'll use two browser tabs:
 
@@ -216,7 +215,7 @@ Every value that ties an asset to the dev environment becomes a **variable** (se
 | `encounters_pipeline.pipeline.yml` | `catalog:` and `schema:` | `${var.catalog}` and `${var.schema}` |
 | `silver_encounters.sql`, `gold_encounters.sql` | the dev source catalog and schema | `${source_catalog}` and `${source_schema}` |
 | `encounters_outcomes.dashboard.yml` | `warehouse_id:` | `${var.warehouse_id}`, plus `dataset_catalog` / `dataset_schema` |
-| `encounters_outcomes_genie.genie_space.yml` | `warehouse_id:`, `parent_path:`, and the table inside the JSON | `${var.warehouse_id}`, no `parent_path`, and a table built from variables |
+| `encounters_outcomes_genie.genie_space.yml` and its JSON | `warehouse_id:`, `parent_path:`, and the table inside the JSON | `${var.warehouse_id}`, no `parent_path`, and the definition moved into the YAML with a table built from variables |
 | `encounters_refresh.job.yml` | `pipeline_id:` and `pause_status: PAUSED` | a reference to your pipeline, and no `pause_status` |
 
 ### 2.1 Add the variables to `databricks.yml`
@@ -338,44 +337,62 @@ In `resources/encounters_outcomes_genie.genie_space.yml`:
 2. Delete the `parent_path:` line. It points at the folder of whoever built the agent; without it,
    the bundle uses its own folder.
 
-Now the agent's table. Open `src/encounters_outcomes_genie.geniespace.json` to look at it (don't edit
-it). It's the agent's whole definition: sample questions, the table it uses, an example question with
-its SQL, and the text instructions. The dev schema appears in **two places**:
+Now the agent's table. `src/encounters_outcomes_genie.geniespace.json` is the agent's whole
+definition: sample questions, the table it uses, an example question with its SQL, and the text
+instructions. The dev schema appears in it in **two places**:
 
 ```json
-  "data_sources": {
-    "tables": [
-      {
         "identifier": "<your_catalog>.<dev_schema>.gold_encounters"
-      }
-    ]
-  },
 ```
 
 ```json
-        "sql": [
-          "SELECT facility_name, ROUND(AVG(readmit_pct), 1) AS readmission_rate_pct, COUNT(*) AS encounters\n",
           "FROM `<your_catalog>`.`<dev_schema>`.gold_encounters\n",
 ```
 
 Your file shows the real names, for example `dev-training.instructor_demo`. Bundle variables aren't
-substituted inside this file, so you can't just type `${var.schema}` here. Instead, move the definition
-into the YAML, where variables work. In **Tab 1** run:
+substituted inside this file, so typing `${var.schema}` there wouldn't work. Instead, move the
+definition into the YAML, where variables are substituted:
+
+1. In `resources/encounters_outcomes_genie.genie_space.yml`, replace the line
+
+   ```yaml
+         file_path: ../src/encounters_outcomes_genie.geniespace.json
+   ```
+
+   with
+
+   ```yaml
+         serialized_space: |
+   ```
+
+2. Open `src/encounters_outcomes_genie.geniespace.json`, select everything, and copy it.
+3. In the YAML, paste it on the line below `serialized_space: |`. With the pasted lines still
+   selected, press **Tab** until they're indented further than `serialized_space:`. Everything
+   indented under `serialized_space: |` is its value.
+4. In the pasted text, change the two table names to use your variables:
+
+   ```json
+           "identifier": "${var.catalog}.${var.schema}.gold_encounters"
+   ```
+
+   ```json
+             "FROM `${var.catalog}`.`${var.schema}`.gold_encounters\n",
+   ```
+
+5. Delete `src/encounters_outcomes_genie.geniespace.json`. The YAML now holds the definition.
+
+Check the result for both targets:
 
 ```bash
-python ../dabs-workshop/tools/inline_genie.py
+databricks bundle validate -t dev  -o json | jq '.resources.genie_spaces[].serialized_space | fromjson | .data_sources.tables[].identifier'
+databricks bundle validate -t prod -o json | jq '.resources.genie_spaces[].serialized_space | fromjson | .data_sources.tables[].identifier'
 ```
 
-The script:
+The first prints your table, the second the production table. If `validate` reports a YAML error,
+check that every pasted line is indented further than `serialized_space:`.
 
-1. Copies the JSON into `resources/encounters_outcomes_genie.genie_space.yml` as `serialized_space`,
-   in place of the `file_path:` line.
-2. Replaces both table names with `${var.catalog}.${var.schema}.gold_encounters` (quoted the same way
-   in the SQL).
-3. Deletes the JSON file, since the YAML now holds the definition.
-
-It prints the table it replaced. Open the YAML to see the result: under `serialized_space: |` is the
-same JSON, now with `${var.catalog}.${var.schema}.gold_encounters`.
+When the agent changes later in dev, export it again with
+`databricks bundle generate genie-space --existing-id <id> --force` and repeat these steps.
 
 ### 2.5 Job
 

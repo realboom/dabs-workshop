@@ -29,7 +29,6 @@ dabs-workshop/
 │   ├── generate_workshop_data.py   · instructor: builds the shared star schema (run once)
 │   └── profiles/                   · adult / pediatric data profiles used by the generator
 ├── instructor/                     · the dev assets students import, and the script that builds them
-├── tools/inline_genie.py           · students run it in Part 2 to make the Genie agent's table a variable
 ├── cicd/deploy-prod.yml            · example GitHub Actions workflow for Part 5
 └── solution/encounters_bundle/     · the finished bundle (after Parts 0–3)
 ```
