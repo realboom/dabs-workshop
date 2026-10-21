@@ -343,17 +343,44 @@ In `resources/encounters_outcomes_genie.genie_space.yml`:
 2. Delete the `parent_path:` line. It points at the folder of whoever built the agent; without it,
    the bundle uses its own folder.
 
-The agent's table is inside `src/encounters_outcomes_genie.geniespace.json`, and bundle variables
-aren't substituted inside that file. So move the definition into the YAML, where they are. In
-**Tab 1** run:
+Now the agent's table. Open `src/encounters_outcomes_genie.geniespace.json` to look at it (don't edit
+it). It's the agent's whole definition: sample questions, the table it uses, an example question with
+its SQL, and the text instructions. The dev schema appears in **two places**:
+
+```json
+  "data_sources": {
+    "tables": [
+      {
+        "identifier": "<your_catalog>.<dev_schema>.gold_encounters"
+      }
+    ]
+  },
+```
+
+```json
+        "sql": [
+          "SELECT facility_name, ROUND(AVG(readmit_pct), 1) AS readmission_rate_pct, COUNT(*) AS encounters\n",
+          "FROM `<your_catalog>`.`<dev_schema>`.gold_encounters\n",
+```
+
+Your file shows the real names, for example `dev-training.instructor_demo`. Bundle variables aren't
+substituted inside this file, so you can't just type `${var.schema}` here. Instead, move the definition
+into the YAML, where variables work. In **Tab 1** run:
 
 ```bash
 python ../dabs-workshop/tools/inline_genie.py
 ```
 
-It copies the JSON into the YAML as `serialized_space`, replaces the table with
-`${var.catalog}.${var.schema}.gold_encounters`, and removes the JSON file. Open the YAML again to see
-the result.
+The script:
+
+1. Copies the JSON into `resources/encounters_outcomes_genie.genie_space.yml` as `serialized_space`,
+   in place of the `file_path:` line.
+2. Replaces both table names with `${var.catalog}.${var.schema}.gold_encounters` (quoted the same way
+   in the SQL).
+3. Deletes the JSON file, since the YAML now holds the definition.
+
+It prints the table it replaced. Open the YAML to see the result: under `serialized_space: |` is the
+same JSON, now with `${var.catalog}.${var.schema}.gold_encounters`.
 
 ### 2.5 Job
 
