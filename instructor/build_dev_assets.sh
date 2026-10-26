@@ -27,12 +27,13 @@ URL="${WORKSPACE_URL:-<workspace-url>}"
 
 # Run a databricks CLI command with JSON output. The CLI can print notices before the JSON
 # (for example about updates or optional add-ons), so drop anything before the first { or [.
+# Errors go to stderr: dbx_json is usually piped into jq, which would otherwise swallow them.
 dbx_json() {
   local out
-  out="$(databricks "$@" -o json 2>"$TMP/stderr")" || { echo "databricks $* failed:"; cat "$TMP/stderr"; exit 1; }
+  out="$(databricks "$@" -o json 2>"$TMP/stderr")" || { echo "ERROR: databricks $* failed:" >&2; cat "$TMP/stderr" >&2; exit 1; }
   # Keep only the JSON document: from the first line that starts with { or [ to the line that closes it.
   out="$(printf '%s\n' "$out" | sed -n '/^[[{]/,/^[]}]/p')"
-  [ -n "$out" ] || { echo "databricks $* returned no JSON:"; cat "$TMP/stderr"; exit 1; }
+  [ -n "$out" ] || { echo "ERROR: databricks $* returned no JSON:" >&2; cat "$TMP/stderr" >&2; exit 1; }
   printf '%s\n' "$out"
 }
 
@@ -57,6 +58,14 @@ if ! databricks schemas get "$CATALOG.$SCHEMA" > /dev/null 2>&1; then
 fi
 
 # 1. Pipeline: SQL files in your home folder, writing to your schema.
+# Pipeline names are unique in a workspace, so stop if an earlier run already created one.
+EXISTING="$(dbx_json pipelines list-pipelines --filter "name LIKE 'encounters_pipeline'" | jq -r '[.[]? | .pipeline_id] | join(" ")')"
+if [ -n "$EXISTING" ]; then
+  echo "ERROR: a pipeline named encounters_pipeline already exists ($EXISTING)." >&2
+  echo "Delete it (and the dashboard, Genie agent, and job from the earlier run) before re-running:" >&2
+  echo "  databricks pipelines delete $EXISTING" >&2
+  exit 1
+fi
 PIPE_DIR="$HOME_PATH/encounters_pipeline"
 databricks workspace mkdirs "$PIPE_DIR/transformations"
 for f in silver_encounters gold_encounters; do
