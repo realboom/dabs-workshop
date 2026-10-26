@@ -34,9 +34,6 @@ You need:
   write to it.
 - **Links to the four dev assets.** Your instructor will share a link to each one: the pipeline, the
   dashboard, the Genie agent, and the job.
-- **This repo in your workspace.** In the workspace sidebar, open your home folder, select
-  **Workspace → Create → Git folder**, and paste `https://github.com/realboom/dabs-workshop`. It appears as
-  `dabs-workshop` in your home folder. It holds the finished bundle if you want to compare.
 
 Throughout the lab, you'll use two browser tabs:
 
@@ -579,7 +576,8 @@ it is a CI/CD job, not something a developer runs from a terminal:
    principal**, not as a person. The production target sets `run_as` to that service principal, so
    the pipeline and job run under it too.
 
-`dabs-workshop/cicd/deploy-prod.yml` is an example GitHub Actions workflow that does steps 2 and 3.
+[`cicd/deploy-prod.yml`](../cicd/deploy-prod.yml) in the workshop repo is an example GitHub Actions workflow that
+does steps 2 and 3.
 Your instructor will walk through it.
 
 ---
@@ -597,7 +595,7 @@ Your instructor will walk through it.
 | Targets and deployment modes | `dev` (development) and `prod` (production) |
 | `validate` → `deploy` → `run` | Parts 2–4 |
 
-The finished bundle is in `dabs-workshop/solution/encounters_bundle` if you want to compare.
+The finished bundle is [on GitHub](../solution/encounters_bundle) if you want to compare.
 
 **Cleaning up (optional).** `databricks bundle destroy` deletes everything the bundle deployed to dev.
 It can leave the pipeline's tables behind in your schema; if you deploy into the same schema again
