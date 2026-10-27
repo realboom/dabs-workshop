@@ -88,6 +88,11 @@ ls
 and defines **targets** (the environments you deploy to). `resources/` will hold one YAML file per
 thing you deploy, and `src/` will hold their code.
 
+The template also created `tests/` and `fixtures/`, which hold pytest tests and test data for Python
+code. This bundle is all SQL, so you won't use them. Its quality checks are the **expectations** in
+`silver_encounters`, which drop bad rows every time the pipeline runs, and `databricks bundle validate`,
+which CI runs on every pull request so a broken bundle never merges.
+
 ### 0.3 Edit `databricks.yml`
 
 In **Tab 2**, open `encounters_bundle/databricks.yml` and make these changes.
